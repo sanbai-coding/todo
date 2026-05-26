@@ -1,0 +1,15 @@
+services:
+  # Node.js API Service
+  - type: web
+    name: zhouzhou-api
+    env: node
+    region: singapore # You can change this to your preferred region
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: REDIS_URL
+        sync: false # 提示 Render 在控制台手动输入这个变量
+      - key: FRONTEND_URL
+        value: "*"
