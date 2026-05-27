@@ -180,11 +180,11 @@ input, textarea { font-family: inherit; }
 /* === Topbar ============================================== */
 .main { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; height: 100%; }
 .topbar {
-  height: 58px;
+  height: 56px; padding: 0 28px;
+  border-bottom: 1px solid var(--line-soft);
   display: flex; align-items: center; gap: 16px;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
+  background: var(--surface);
+  z-index: 40;
 }
 .crumb {
   display: flex; align-items: center; gap: 10px;

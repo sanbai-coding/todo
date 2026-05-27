@@ -33,7 +33,7 @@ export function Header() {
 
   return (
     <div className="topbar">
-      <div className="crumb flex items-center gap-3">
+      <div className="crumb flex items-center gap-3 relative z-50">
         <h1>{viewConfig?.label}</h1>
         <TagFilter />
       </div>
