@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { VIEWS } from '../../types';
 import { useEffect, useRef } from 'react';
 import { TagFilter } from '../common/TagFilter';
+import { DateFilter } from '../common/DateFilter';
 
 export function Header() {
   const { currentView, searchQuery, setSearchQuery, openCreateModal, openAuthModal } = useUIStore();
@@ -35,7 +36,8 @@ export function Header() {
     <div className="topbar">
       <div className="crumb flex items-center gap-3 relative z-50">
         <h1>{viewConfig?.label}</h1>
-        <TagFilter />
+        {currentView !== 'monthPlan' && <TagFilter />}
+        <DateFilter />
       </div>
 
       <div className="search">

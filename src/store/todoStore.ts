@@ -13,8 +13,8 @@ interface TodoState {
   globalTags: string[];
   fetchFromCloud: () => Promise<void>;
   syncToCloud: () => Promise<void>;
-  addTodo: (input: CreateTodoInput) => void;
-  updateTodo: (id: string, input: Partial<Omit<Todo, 'id' | 'createdAt'>>) => void;
+  addTodo: (input: CreateTodoInput) => string;
+  updateTodo: (id: string, input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { planId?: string }) => void;
   deleteTodo: (id: string) => void;
   toggleComplete: (id: string) => void;
   clearCompleted: () => void;
@@ -62,10 +62,11 @@ export const useTodoStore = create<TodoState>()(
       },
 
       addTodo: (input) => {
+        const newId = nanoid();
         set((state) => {
           const now = new Date().toISOString();
           const newTodo: Todo = {
-            id: nanoid(),
+            id: newId,
             createdAt: now,
             updatedAt: now,
             ...input,
@@ -77,6 +78,7 @@ export const useTodoStore = create<TodoState>()(
           state.todos.push(newTodo as any);
         });
         triggerSync();
+        return newId;
       },
 
       updateTodo: (id, input) => {

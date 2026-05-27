@@ -78,8 +78,16 @@ export function groupByDateForCalendar(todos: Todo[]): Record<string, Todo[]> {
   return byDate;
 }
 
-export function filterTodos(todos: Todo[], searchText: string, tagFilter: string | null = null): Todo[] {
+export function filterTodos(
+  todos: Todo[],
+  searchText: string,
+  tagFilter: string | null = null,
+  dateFilter: 'all' | 'today' = 'all'
+): Todo[] {
   let result = todos;
+  if (dateFilter === 'today') {
+    result = result.filter(t => !t.dueDate || isTodayStr(t.dueDate));
+  }
   if (tagFilter) {
     result = result.filter(t => t.tags.includes(tagFilter));
   }

@@ -92,8 +92,8 @@ function QuadrantCell({ quadrant, todos }: QuadrantCellProps) {
 
 export function QuadrantView() {
   const { todos } = useTodoStore();
-  const { searchQuery, tagFilter } = useUIStore();
-  const filtered = filterTodos(todos, searchQuery, tagFilter);
+  const { searchQuery, tagFilter, dateFilter } = useUIStore();
+  const filtered = filterTodos(todos, searchQuery, tagFilter, dateFilter);
   const groups = groupByQuadrant(filtered);
 
   return (

@@ -1,4 +1,4 @@
-export type ViewType = 'timeline' | 'status' | 'calendar' | 'quadrant';
+export type ViewType = 'timeline' | 'status' | 'calendar' | 'quadrant' | 'monthPlan';
 
 export interface ViewConfig {
   type: ViewType;
@@ -11,4 +11,5 @@ export const VIEWS: ViewConfig[] = [
   { type: 'status', label: '状态看板', icon: 'Kanban' },
   { type: 'calendar', label: '月历视图', icon: 'Calendar' },
   { type: 'quadrant', label: '四象限', icon: 'LayoutGrid' },
+  { type: 'monthPlan', label: '月度规划', icon: 'Target' },
 ];

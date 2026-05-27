@@ -1,0 +1,151 @@
+/* ===== New Tag Modal ===== */
+.modal-mask{
+  position:fixed; inset:0;
+  background:rgba(31,27,20,0.42);
+  display:grid; place-items:center;
+  z-index:100; backdrop-filter:blur(2px);
+}
+.modal{
+  width:440px;
+  background:var(--surface);
+  border-radius:var(--r-xl);
+  box-shadow:
+    0 1px 2px rgba(31,27,20,.04),
+    0 12px 32px rgba(31,27,20,.16),
+    0 32px 80px rgba(31,27,20,.12);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+}
+
+/* ===== Header ===== */
+.modal-head{padding:18px 22px 4px; display:flex; align-items:baseline; gap:10px}
+.modal-head .t{font-size:16px; font-weight:600; color:var(--ink-1); letter-spacing:-.01em}
+.modal-head .x{
+  margin-left:auto; width:26px; height:26px;
+  border-radius:var(--r-sm); display:grid; place-items:center; color:var(--ink-3);
+}
+.modal-head .x:hover{background:var(--hover); color:var(--ink-1)}
+.modal-head .x svg{width:14px; height:14px; stroke-width:2}
+
+/* ===== Body ===== */
+.modal-body{padding:14px 22px 18px; display:flex; flex-direction:column; gap:16px}
+
+/* Form field */
+.field{display:flex; flex-direction:column; gap:6px}
+.field .lbl{
+  font-size:11px; color:var(--ink-3);
+  letter-spacing:.12em; text-transform:uppercase; font-weight:600;
+}
+.field input.txt{
+  height:36px; padding:0 12px;
+  border:1px solid var(--line); border-radius:var(--r-sm);
+  background:var(--surface); font-size:13px; color:var(--ink-1);
+  outline:none; transition:border-color .12s, box-shadow .12s;
+  font-family:inherit;
+}
+.field input.txt:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(45,70,54,.12);
+}
+.field input.txt::placeholder{color:var(--ink-4)}
+
+/* Type segment */
+.tag-type-seg{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.tag-type-opt{
+  border:1px solid var(--line); border-radius:var(--r-md);
+  padding:12px; text-align:left;
+  display:flex; flex-direction:column; gap:4px;
+  background:var(--surface); transition:border-color .12s, background .12s;
+}
+.tag-type-opt:hover{border-color:var(--line-strong)}
+.tag-type-opt .top{
+  display:flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:600; color:var(--ink-1);
+}
+.tag-type-opt .badge-l{
+  font-size:9.5px; font-weight:600;
+  padding:1px 5px; border-radius:3px;
+  background:var(--surface-2); color:var(--ink-3);
+  letter-spacing:.06em; margin-left:auto;
+}
+.tag-type-opt .desc{font-size:11.5px; color:var(--ink-3); line-height:1.4}
+.tag-type-opt.on{border-color:var(--brand); background:var(--brand-soft)}
+.tag-type-opt.on .badge-l{background:var(--brand); color:var(--brand-ink)}
+
+/* Parent picker (L2 only) */
+.parent-pick{display:flex; flex-wrap:wrap; gap:6px}
+.parent-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 10px; font-size:12.5px;
+  border-radius:var(--r-sm); border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2); font-weight:500;
+  transition:border-color .1s, background .1s;
+}
+.parent-chip .d{width:7px; height:7px; border-radius:999px}
+.parent-chip:hover{border-color:var(--line-strong); color:var(--ink-1)}
+.parent-chip.on{border-color:var(--brand); background:var(--brand-soft); color:var(--brand)}
+
+/* Color swatches (L1 only) */
+.swatches{display:flex; gap:8px; flex-wrap:wrap}
+.sw{
+  width:28px; height:28px; border-radius:999px;
+  display:grid; place-items:center; position:relative;
+  transition:transform .12s;
+}
+.sw::before{
+  content:""; position:absolute; inset:-3px;
+  border-radius:999px; border:1.5px solid transparent;
+  transition:border-color .12s;
+}
+.sw:hover{transform:scale(1.06)}
+.sw.on::before{border-color:var(--ink-1)}
+.sw.on::after{
+  content:""; position:absolute;
+  width:8px; height:5px;
+  border-left:2px solid #fff; border-bottom:2px solid #fff;
+  transform:rotate(-45deg) translate(1px,-1px);
+}
+
+/* Inherit notice (L2 only) */
+.inherit-note{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px; background:var(--surface-2);
+  border-radius:var(--r-sm); font-size:11.5px; color:var(--ink-3);
+}
+.inherit-note .pdot{
+  width:6px; height:6px; border-radius:999px; flex-shrink:0;
+}
+.inherit-note b{color:var(--ink-1)}
+
+/* ===== Footer ===== */
+.modal-foot{
+  padding:14px 22px;
+  border-top:1px solid var(--line-soft);
+  background:var(--surface-2);
+  display:flex; align-items:center; gap:10px;
+}
+.preview{
+  font-size:11.5px; color:var(--ink-3);
+  display:inline-flex; align-items:center; gap:6px;
+}
+.preview .dot{width:8px; height:8px; border-radius:999px}
+.preview .pname{color:var(--ink-1); font-weight:500}
+.modal-foot .actions{margin-left:auto; display:flex; gap:8px}
+.btn{
+  height:32px; padding:0 14px;
+  border-radius:var(--r-sm);
+  font-size:12.5px; font-weight:500;
+  border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2);
+  font-family:inherit;
+}
+.btn:hover{background:var(--hover); color:var(--ink-1)}
+.btn.primary{
+  background:var(--brand); color:var(--brand-ink);
+  border-color:transparent; font-weight:600;
+}
+.btn.primary:hover{background:#243729}
+
+/* L2 hides swatches; L1 hides parent picker & inherit note */
+[data-level="L1"] .l2-only{display:none}
+[data-level="L2"] .l1-only{display:none}

@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { useUIStore } from '../../store/uiStore';
-import { useTodoStore } from '../../store/todoStore';
-import { getTagColor } from '../../utils/colorUtils';
+import { usePlanStore } from '../../store/planStore';
+import { TAG_TONES } from '../../types';
 import { clsx } from 'clsx';
+import { ChevronRight } from 'lucide-react';
 
 export function TagFilter() {
   const { tagFilter, setTagFilter, openTagModal } = useUIStore();
-  const { globalTags, todos } = useTodoStore();
+  const { tags, projects, categories, plans } = usePlanStore();
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on click outside
@@ -22,13 +24,56 @@ export function TagFilter() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showTagMenu]);
 
-  // Removed the early return so the button is always visible
-  // if (globalTags.length === 0 && !tagFilter) return null;
+  const projectTags = tags.filter(t => t.level === 'L1');
+  const categoryTags = tags.filter(t => t.level === 'L2');
 
-  const filteredTags = globalTags.filter(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProjectTags = projectTags.filter(pTag => {
+    if (!searchQuery) return true;
+    if (pTag.name.toLowerCase().includes(searchQuery.toLowerCase())) return true;
+    // Or if any of its categories match
+    const pCats = categoryTags.filter(cTag => cTag.parentId === pTag.id);
+    return pCats.some(cTag => cTag.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
-  // Count tags in active todos (not strictly required by design but good for real data)
-  const getTagCount = (tag: string) => todos.filter(todo => todo.tags?.includes(tag)).length;
+  const getProjectTodoCount = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return 0;
+    let count = 0;
+    project.categoryIds.forEach(catId => {
+      const cat = categories.find(c => c.id === catId);
+      if (cat) {
+        cat.planIds.forEach(planId => {
+          const plan = plans.find(p => p.id === planId);
+          if (plan?.todoId) count++;
+        });
+      }
+    });
+    return count;
+  };
+
+  const getCategoryTodoCount = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return 0;
+    let count = 0;
+    category.planIds.forEach(planId => {
+      const plan = plans.find(p => p.id === planId);
+      if (plan?.todoId) count++;
+    });
+    return count;
+  };
+
+  const toggleProject = (projectId: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(projectId)) {
+      newSet.delete(projectId);
+    } else {
+      newSet.add(projectId);
+    }
+    setExpandedProjects(newSet);
+  };
+
+  const activeTagObj = tags.find(t => t.id === tagFilter);
+  const totalTagsCount = projectTags.length + categoryTags.length;
 
   return (
     <div className="relative z-50 flex items-center" ref={menuRef}>
@@ -43,9 +88,11 @@ export function TagFilter() {
             <circle cx="8" cy="8" r="1.2"/>
           </svg>
         </span>
-        <span>{tagFilter ? tagFilter : `${globalTags.length} 个标签`}</span>
-        {tagFilter && (
-          <span className="pill">{getTagCount(tagFilter)}</span>
+        <span>{activeTagObj ? activeTagObj.name : `全部标签`}</span>
+        {activeTagObj && (
+          <span className="pill">
+            {activeTagObj.level === 'L1' ? getProjectTodoCount(activeTagObj.id) : getCategoryTodoCount(activeTagObj.id)}
+          </span>
         )}
         <span className="caret">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
@@ -71,7 +118,7 @@ export function TagFilter() {
               <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
             </svg>
             <input 
-              placeholder="搜索标签…" 
+              placeholder="搜索项目或分类…" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -86,31 +133,72 @@ export function TagFilter() {
               >
                 <span className="dot-tag"></span>
                 <span className="name">全部标签</span>
-                <span className="cnt">{globalTags.length}</span>
+                <span className="cnt">{totalTagsCount}</span>
                 <span className="tick">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                 </span>
               </button>
             )}
 
-            {globalTags.length > 0 && <div className="tfp-divider"></div>}
+            {filteredProjectTags.length > 0 && <div className="tfp-divider"></div>}
 
-            {/* 动态渲染标签行 */}
-            {filteredTags.map(tag => {
-              const isSelected = tagFilter === tag;
+            {/* 项目和分类层级渲染 */}
+            {filteredProjectTags.map(pTag => {
+              const isExpanded = expandedProjects.has(pTag.id) || searchQuery;
+              const pCats = categoryTags.filter(cTag => cTag.parentId === pTag.id);
+              const pCatsFiltered = searchQuery 
+                ? pCats.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || pTag.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                : pCats;
+              
+              const isSelected = tagFilter === pTag.id;
+              
               return (
-                <button 
-                  key={tag}
-                  className={clsx("tfp-row", isSelected && "on")}
-                  onClick={() => { setTagFilter(tag); setShowTagMenu(false); }}
-                >
-                  <span className="dot-tag" style={{ background: getTagColor(tag) }}></span>
-                  <span className="name">{tag}</span>
-                  <span className="cnt">{getTagCount(tag)}</span>
-                  <span className="tick">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                  </span>
-                </button>
+                <div key={pTag.id}>
+                  <div className="flex items-center w-full group">
+                    <button
+                      className="p-2 text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleProject(pTag.id);
+                      }}
+                    >
+                      <ChevronRight size={14} className={clsx("transition-transform", isExpanded && "rotate-90")} />
+                    </button>
+                    <button 
+                      className={clsx("tfp-row !pl-1", isSelected && "on")}
+                      onClick={() => { setTagFilter(pTag.id); setShowTagMenu(false); }}
+                    >
+                      <span className="dot-tag" style={{ background: TAG_TONES[pTag.tone] }}></span>
+                      <span className="name">{pTag.name}</span>
+                      <span className="cnt">{getProjectTodoCount(pTag.id)}</span>
+                      <span className="tick">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      </span>
+                    </button>
+                  </div>
+                  
+                  {isExpanded && pCatsFiltered.length > 0 && (
+                    <div className="pl-6 border-l border-[var(--line-soft)] ml-3">
+                      {pCatsFiltered.map(cTag => {
+                        const isCatSelected = tagFilter === cTag.id;
+                        return (
+                          <button 
+                            key={cTag.id}
+                            className={clsx("tfp-row", isCatSelected && "on")}
+                            onClick={() => { setTagFilter(cTag.id); setShowTagMenu(false); }}
+                          >
+                            <span className="dot-tag" style={{ background: TAG_TONES[cTag.tone] }}></span>
+                            <span className="name">{cTag.name}</span>
+                            <span className="cnt">{getCategoryTodoCount(cTag.id)}</span>
+                            <span className="tick">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -128,7 +216,7 @@ export function TagFilter() {
               </svg>
               <span>管理标签</span>
             </button>
-            <span className="right">共 {globalTags.length} 个标签</span>
+            <span className="right">共 {totalTagsCount} 个标签</span>
           </div>
         </div>
       )}

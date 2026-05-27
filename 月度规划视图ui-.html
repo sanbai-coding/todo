@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>月度规划</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#F6F3EC; --surface:#FFFDF8; --surface-2:#F0EDE4;
+    --line:rgba(34,30,24,0.08); --line-soft:rgba(34,30,24,0.05); --line-strong:rgba(34,30,24,0.14);
+    --hover:rgba(34,30,24,0.04);
+    --ink-1:#1F1B14; --ink-2:#56524A; --ink-3:#8A8579; --ink-4:#B3AE9F;
+    --brand:#2D4636; --brand-soft:#E3E8DF; --brand-ink:#FBFAF6;
+    --warn:#B07A2C; --warn-soft:#F4ECDD;
+    --danger:#A8463A; --danger-soft:#F1DEDA;
+    --info:#4F6C82;
+    --muted-soft:#ECE9E0;
+    --r-sm:6px; --r-md:10px; --r-lg:14px;
+    /* 项目色系 — 8 个低饱和暖色 */
+    --tag-teal:#3F7375; --tag-rust:#A8463A; --tag-clay:#B07A2C; --tag-ochre:#8A7438;
+    --tag-sage:#5C7C5A; --tag-slate:#4F6C82; --tag-plum:#7A5A7C; --tag-rose:#9E4F66;
+    --font-sans:"Manrope","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+    --font-num:"Manrope",system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0; padding:24px 28px; background:var(--bg); min-height:100vh;
+    font-family:var(--font-sans); color:var(--ink-1);
+    -webkit-font-smoothing:antialiased; font-size:14px;
+  }
+  button{font-family:inherit;cursor:pointer;border:0;background:none;padding:0;color:inherit}
+
+  /* ===== Month head ===== */
+  .month-head{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+  .mnav{display:inline-flex; gap:2px}
+  .mnav button{
+    width:30px; height:30px; border-radius:var(--r-sm);
+    display:grid; place-items:center; color:var(--ink-2);
+    border:1px solid var(--line-soft); background:var(--surface);
+  }
+  .mnav button:hover{background:var(--hover); color:var(--ink-1)}
+  .mnav button svg{width:14px; height:14px; stroke-width:1.8}
+  .mo{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 10px 6px 12px;
+    background:var(--surface); border:1px solid var(--line-soft);
+    border-radius:var(--r-md);
+  }
+  .mo:hover{border-color:var(--line-strong)}
+  .mo .m{font-family:var(--font-num); font-size:18px; font-weight:600; letter-spacing:-.02em; line-height:1; color:var(--ink-1); font-variant-numeric:tabular-nums}
+  .mo .y{font-family:var(--font-num); font-size:13px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+  .mo svg{width:13px; height:13px; stroke-width:2; color:var(--ink-3)}
+  .this-month{
+    font-size:12px; color:var(--ink-2); padding:0 12px; height:30px;
+    border:1px solid var(--line-soft); background:var(--surface);
+    border-radius:var(--r-sm); display:inline-flex; align-items:center;
+    font-weight:500; gap:4px;
+  }
+  .this-month:hover{background:var(--hover); color:var(--ink-1)}
+  .this-month svg{width:12px; height:12px; stroke-width:2}
+  .month-stats{margin-left:auto; display:inline-flex; align-items:center; gap:18px}
+  .month-stats .ms{display:inline-flex; align-items:baseline; gap:6px; font-size:12px; color:var(--ink-3)}
+  .month-stats .ms b{
+    font-family:var(--font-num); font-size:15px; font-weight:600;
+    color:var(--ink-1); font-variant-numeric:tabular-nums; letter-spacing:-.01em;
+  }
+
+  /* ===== Month board (horizontal scroll) ===== */
+  .month-board{
+    display:flex; gap:14px; overflow-x:auto;
+    padding-bottom:10px; align-items:flex-start;
+  }
+
+  /* ===== Project column ===== */
+  .proj-col{
+    width:280px; flex-shrink:0;
+    background:var(--surface); border:1px solid var(--line-soft);
+    border-radius:var(--r-lg);
+    display:flex; flex-direction:column;
+    max-height:calc(100vh - 160px); overflow:hidden;
+  }
+  .proj-head{
+    display:flex; align-items:center; gap:8px;
+    padding:12px 14px 10px;
+    border-bottom:1px solid var(--line-soft);
+    position:relative;
+  }
+  .proj-head::before{
+    content:""; position:absolute; top:0; left:0; right:0;
+    height:3px; background:var(--proj-color, var(--ink-3));
+  }
+  .proj-head .pname{font-size:14px; font-weight:600; color:var(--ink-1); letter-spacing:-.005em}
+  .proj-head .pcnt{
+    font-size:11.5px; color:var(--ink-3);
+    font-variant-numeric:tabular-nums;
+    padding:1px 6px; background:var(--surface-2); border-radius:999px;
+  }
+  .proj-head .pact{margin-left:auto; display:inline-flex; gap:2px}
+  .proj-head .pact button{
+    width:24px; height:24px; border-radius:var(--r-sm);
+    display:grid; place-items:center; color:var(--ink-3);
+  }
+  .proj-head .pact button:hover{background:var(--hover); color:var(--ink-1)}
+  .proj-head .pact button svg{width:13px; height:13px; stroke-width:1.8}
+
+  .proj-body{
+    flex:1; min-height:0; overflow-y:auto;
+    padding:8px 8px 10px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+
+  /* ===== Category ===== */
+  .cat{display:flex; flex-direction:column; padding-top:6px}
+  .cat-head{
+    display:flex; align-items:center; gap:6px;
+    padding:4px 8px 4px 6px;
+    border-radius:var(--r-sm);
+    cursor:pointer; user-select:none;
+  }
+  .cat-head:hover{background:var(--hover)}
+  .cat-head .caret{
+    width:14px; height:14px;
+    display:grid; place-items:center; color:var(--ink-3);
+    transition:transform .15s;
+  }
+  .cat-head[data-open="false"] .caret{transform:rotate(-90deg)}
+  .cat-head .caret svg{width:10px; height:10px; stroke-width:2.4}
+  .cname{font-size:11.5px; color:var(--ink-3); font-weight:600; letter-spacing:.06em; text-transform:uppercase}
+  .ccnt{font-size:11px; color:var(--ink-4); font-variant-numeric:tabular-nums}
+  .cadd{
+    margin-left:auto; width:18px; height:18px; border-radius:4px;
+    display:grid; place-items:center; color:var(--ink-4);
+    opacity:0; transition:opacity .12s;
+  }
+  .cat-head:hover .cadd{opacity:1}
+  .cadd:hover{background:var(--hover); color:var(--ink-1)}
+  .cadd svg{width:11px; height:11px; stroke-width:2}
+
+  .plan-list{display:flex; flex-direction:column; padding-left:20px}
+
+  /* ===== Plan (text-only, hover reveals actions) ===== */
+  .plan{
+    display:flex; align-items:center; gap:8px;
+    padding:6px 6px 6px 8px;
+    border-radius:var(--r-sm);
+    font-size:13px; color:var(--ink-1); line-height:1.35;
+    cursor:text; position:relative;
+  }
+  .plan::before{
+    content:""; position:absolute; left:0; top:13px;
+    width:3px; height:3px; border-radius:999px;
+    background:var(--proj-color, var(--ink-4)); opacity:.7;
+  }
+  .plan:hover{background:var(--hover)}
+  .plan .ptxt{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  /* priority dot before text */
+  .pri-dot{
+    width:4px; height:4px; border-radius:999px; flex-shrink:0;
+    background:var(--ink-4);
+  }
+  .pri-dot.h{background:var(--danger)}
+  .pri-dot.m{background:var(--warn)}
+  .pri-dot.l{background:var(--info)}
+
+  /* due date */
+  .due{font-size:10.5px; color:var(--ink-4); font-variant-numeric:tabular-nums; flex-shrink:0}
+
+  /* state badge — synced with todo */
+  .plan-state{
+    font-size:9.5px; padding:1px 5px; border-radius:3px;
+    font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+    flex-shrink:0; line-height:1.5;
+  }
+  .plan-state.s-todo   { color:var(--ink-3); background:var(--surface-2) }
+  .plan-state.s-doing  { color:var(--warn);  background:var(--warn-soft) }
+  .plan-state.s-today  { color:var(--brand); background:var(--brand-soft) }
+  .plan-state.s-done   { color:var(--brand); background:var(--brand-soft); opacity:.7 }
+  .plan-state.s-cancel { color:var(--ink-4); background:var(--muted-soft) }
+
+  /* synced — proj-color dot becomes solid */
+  .plan.has-todo::before{ background:var(--proj-color, var(--ink-4)); opacity:1; width:4px; height:4px }
+
+  /* doing — subtle warm wash */
+  .plan.s-doing{ background:rgba(176,122,44,0.05) }
+
+  /* done / cancel — strikethrough */
+  .plan.s-done .ptxt{
+    text-decoration:line-through;
+    text-decoration-color:rgba(34,30,24,.3);
+    text-decoration-thickness:1px;
+    color:var(--ink-3);
+  }
+  .plan.s-done::before{ background:var(--brand); opacity:.35 }
+  .plan.s-cancel .ptxt{
+    text-decoration:line-through;
+    text-decoration-color:rgba(34,30,24,.2);
+    color:var(--ink-4);
+  }
+  .plan.s-cancel::before{ background:var(--ink-4); opacity:.3 }
+
+  /* hover actions */
+  .plan-actions{
+    display:inline-flex; gap:1px; opacity:0; transition:opacity .1s; flex-shrink:0;
+  }
+  .plan:hover .plan-actions{opacity:1}
+  .plan-actions button{
+    width:22px; height:22px; border-radius:4px;
+    display:grid; place-items:center; color:var(--ink-3);
+  }
+  .plan-actions button:hover{background:rgba(34,30,24,.08); color:var(--ink-1)}
+  .plan-actions button.today:hover{color:var(--brand); background:var(--brand-soft)}
+  .plan-actions button svg{width:13px; height:13px; stroke-width:1.8}
+  /* hide set-today/edit when already a todo */
+  .plan.has-todo .plan-actions button.today,
+  .plan.has-todo .plan-actions button.edit-todo{ display:none }
+
+  /* add rows */
+  .plan-add{
+    display:flex; align-items:center; gap:6px;
+    padding:6px 6px 6px 8px; font-size:12px; color:var(--ink-4);
+    border-radius:var(--r-sm); cursor:text; text-align:left; width:100%;
+  }
+  .plan-add:hover{color:var(--ink-2); background:var(--hover)}
+  .plan-add svg{width:12px; height:12px; stroke-width:2}
+
+  .cat-add{
+    margin:6px 4px 0; display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:11.5px; color:var(--ink-4);
+    padding:8px; border:1px dashed var(--line);
+    border-radius:var(--r-sm); width:calc(100% - 8px);
+  }
+  .cat-add:hover{color:var(--ink-2); border-color:var(--line-strong)}
+  .cat-add svg{width:12px; height:12px; stroke-width:2}
+
+  .proj-add{
+    width:220px; flex-shrink:0; align-self:stretch;
+    border:1px dashed var(--line); border-radius:var(--r-lg);
+    min-height:200px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px;
+    color:var(--ink-4); font-size:13px;
+  }
+  .proj-add:hover{border-color:var(--line-strong); color:var(--ink-2)}
+  .proj-add svg{width:18px; height:18px; stroke-width:1.8}
+
+  ::-webkit-scrollbar{width:8px; height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.08); border-radius:8px}
+</style>
+</head>
+<body>
+
+<!-- ============ Top bar ============ -->
+<div class="month-head">
+  <div class="mnav">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+  </div>
+  <button class="mo">
+    <span class="m">5 月</span>
+    <span class="y">2026</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <button class="this-month">本月</button>
+  <div class="month-stats">
+    <span class="ms"><b>4</b>项目</span>
+    <span class="ms"><b>11</b>计划</span>
+    <span class="ms"><b style="color:var(--warn)">7</b>已转待办</span>
+    <span class="ms"><b style="color:var(--brand)">3</b>已完成</span>
+    <button class="this-month" style="margin-left:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      新建标签
+    </button>
+  </div>
+</div>
+
+<!-- ============ Board ============ -->
+<div class="month-board">
+
+  <!-- ====== Project 1: 公众号选题 (teal) ====== -->
+  <div class="proj-col" style="--proj-color:var(--tag-teal)">
+    <header class="proj-head">
+      <span class="pname">公众号选题</span>
+      <span class="pcnt">7</span>
+      <div class="pact">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+      </div>
+    </header>
+    <div class="proj-body">
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">选题</span>
+          <span class="ccnt">4</span>
+          <button class="cadd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <div class="plan-list">
+          <!-- today -->
+          <div class="plan has-todo s-today">
+            <span class="pri-dot h"></span>
+            <span class="ptxt">AI 产品的本质思考</span>
+            <span class="due">今日</span>
+            <span class="plan-state s-today">今日</span>
+            <span class="plan-actions">
+              <button title="更多"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+            </span>
+          </div>
+          <!-- doing -->
+          <div class="plan has-todo s-doing">
+            <span class="pri-dot m"></span>
+            <span class="ptxt">月度爆款选题盘点</span>
+            <span class="due">5/28</span>
+            <span class="plan-state s-doing">进行中</span>
+            <span class="plan-actions">
+              <button title="更多"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+            </span>
+          </div>
+          <!-- pure plan -->
+          <div class="plan">
+            <span class="ptxt">用户访谈 → 选题转化方法</span>
+            <span class="plan-actions">
+              <button class="today" title="设为今日待办"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></button>
+              <button class="edit-todo" title="设为待办"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+              <button title="更多"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+            </span>
+          </div>
+          <!-- done -->
+          <div class="plan has-todo s-done">
+            <span class="ptxt">行业趋势 5 月观察</span>
+            <span class="plan-state s-done">已完成</span>
+            <span class="plan-actions">
+              <button title="取消完成"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button>
+              <button title="更多"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+            </span>
+          </div>
+          <button class="plan-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>添加计划</button>
+        </div>
+      </div>
+
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">写作</span>
+          <span class="ccnt">2</span>
+          <button class="cadd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <div class="plan-list">
+          <div class="plan has-todo s-todo">
+            <span class="pri-dot m"></span>
+            <span class="ptxt">文章 A · AI 与产品设计原则</span>
+            <span class="due">6/02</span>
+            <span class="plan-state s-todo">待办</span>
+            <span class="plan-actions">
+              <button title="更多"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+            </span>
+          </div>
+          <div class="plan">
+            <span class="ptxt">文章 B · 复盘上线流程</span>
+          </div>
+          <button class="plan-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>添加计划</button>
+        </div>
+      </div>
+
+      <button class="cat-add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>添加分类</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== Project 2: 快研侠 (rust) ====== -->
+  <div class="proj-col" style="--proj-color:var(--tag-rust)">
+    <header class="proj-head">
+      <span class="pname">快研侠</span>
+      <span class="pcnt">5</span>
+      <div class="pact">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+      </div>
+    </header>
+    <div class="proj-body">
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">功能开发</span>
+          <span class="ccnt">3</span>
+        </div>
+        <div class="plan-list">
+          <div class="plan has-todo s-today">
+            <span class="pri-dot h"></span>
+            <span class="ptxt">v2.1 迭代规划</span>
+            <span class="due">今日</span>
+            <span class="plan-state s-today">今日</span>
+          </div>
+          <div class="plan has-todo s-doing">
+            <span class="pri-dot m"></span>
+            <span class="ptxt">登录流程重设计</span>
+            <span class="due">5/30</span>
+            <span class="plan-state s-doing">进行中</span>
+          </div>
+          <div class="plan has-todo s-done">
+            <span class="ptxt">导出 PPT 性能优化</span>
+            <span class="plan-state s-done">已完成</span>
+          </div>
+        </div>
+      </div>
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">运营推广</span>
+          <span class="ccnt">2</span>
+        </div>
+        <div class="plan-list">
+          <div class="plan"><span class="ptxt">本月增长报告</span></div>
+          <div class="plan has-todo s-todo">
+            <span class="pri-dot l"></span>
+            <span class="ptxt">5 月种子用户访谈</span>
+            <span class="due">5/29</span>
+            <span class="plan-state s-todo">待办</span>
+          </div>
+        </div>
+      </div>
+      <button class="cat-add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>添加分类</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== Project 3: 小红书创作 (clay) ====== -->
+  <div class="proj-col" style="--proj-color:var(--tag-clay)">
+    <header class="proj-head">
+      <span class="pname">小红书创作</span>
+      <span class="pcnt">4</span>
+      <div class="pact">
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+      </div>
+    </header>
+    <div class="proj-body">
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">素材拍摄</span>
+          <span class="ccnt">2</span>
+        </div>
+        <div class="plan-list">
+          <div class="plan"><span class="ptxt">周末外出拍摄一组</span></div>
+          <div class="plan has-todo s-cancel">
+            <span class="ptxt">整理上月废片素材</span>
+            <span class="plan-state s-cancel">已取消</span>
+          </div>
+        </div>
+      </div>
+      <div class="cat">
+        <div class="cat-head" data-open="true">
+          <span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="cname">发布计划</span>
+          <span class="ccnt">2</span>
+        </div>
+        <div class="plan-list">
+          <div class="plan has-todo s-today">
+            <span class="pri-dot m"></span>
+            <span class="ptxt">5/27 推送：AI 工具盘点</span>
+            <span class="due">今日</span>
+            <span class="plan-state s-today">今日</span>
+          </div>
+          <div class="plan"><span class="ptxt">5/30 推送：周末选题</span></div>
+        </div>
+      </div>
+      <button class="cat-add">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>添加分类</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ====== Add project ====== -->
+  <button class="proj-add">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span>添加项目</span>
+  </button>
+
+</div>
+
+<script>
+  // Collapse/expand category
+  document.querySelectorAll('.cat-head').forEach(h => {
+    h.addEventListener('click', e => {
+      if (e.target.closest('.cadd')) return;
+      const open = h.dataset.open === 'true';
+      h.dataset.open = !open;
+      const list = h.nextElementSibling;
+      if (list) list.style.display = open ? 'none' : '';
+    });
+  });
+</script>
+
+</body>
+</html>

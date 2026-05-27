@@ -19,6 +19,7 @@ export interface Todo {
   updatedAt: string;
   completedAt?: string;
   sortOrder: number;
+  planId?: string; // Links back to the plan
 }
 
 export type CreateTodoInput = Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>;

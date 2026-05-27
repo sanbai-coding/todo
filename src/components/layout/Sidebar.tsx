@@ -1,4 +1,4 @@
-import { CalendarDays, Kanban, Calendar, LayoutGrid, Plus, Tag as TagIcon } from 'lucide-react';
+import { CalendarDays, Kanban, Calendar, LayoutGrid, Plus, Tag as TagIcon, Target } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { ViewType } from '../../types';
 import { VIEWS } from '../../types';
@@ -11,6 +11,7 @@ const VIEW_ICONS: Record<ViewType, React.ElementType> = {
   status: Kanban,
   calendar: Calendar,
   quadrant: LayoutGrid,
+  monthPlan: Target,
 };
 
 export function Sidebar() {
@@ -49,8 +50,23 @@ export function Sidebar() {
         新建待办
       </button>
 
-      <div className="flex flex-col gap-2 mt-4 px-4">
-        <button onClick={openTagModal} className="side-nav-item w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--hover)] rounded-xl transition-colors">
+      <div className="flex flex-col gap-1 mt-4 px-4">
+        <button 
+          onClick={() => setView('monthPlan')} 
+          className={clsx(
+            "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl transition-colors",
+            currentView === 'monthPlan' 
+              ? "bg-[var(--ink-1)] text-[var(--bg)]" 
+              : "text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink-1)]"
+          )}
+        >
+          <Target size={16} />
+          <span>月度规划</span>
+        </button>
+        <button 
+          onClick={openTagModal} 
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink-1)] rounded-xl transition-colors"
+        >
           <TagIcon size={16} />
           <span>标签管理</span>
         </button>
@@ -58,7 +74,7 @@ export function Sidebar() {
 
       <div className="side-nav-label">视图</div>
       <nav className="side-nav">
-        {VIEWS.map(view => {
+        {VIEWS.filter(v => v.type !== 'monthPlan').map(view => {
           const Icon = VIEW_ICONS[view.type];
           const isActive = currentView === view.type;
           return (

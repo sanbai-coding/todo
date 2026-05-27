@@ -11,21 +11,26 @@ interface UIState {
   isModalOpen: boolean;
   isAuthModalOpen: boolean;
   isTagModalOpen: boolean;
+  isNewTagModalOpen: boolean;
   editingTodoId: string | null;
   defaultDueDate: string | undefined;
   defaultStatus: TodoStatus | undefined;
   defaultQuadrant: Quadrant | undefined;
+  defaultTitle: string | undefined;
+  defaultPlanId: string | undefined;
+  defaultTags: string[] | undefined;
   calendarCurrentMonth: string;
   selectedCalendarDate: string | null;
   searchQuery: string;
   tagFilter: string | null;
+  dateFilter: 'all' | 'today';
   collapsedOverdue: boolean;
   
   listModalFilter: ListModalFilter;
 
   setView: (view: ViewType) => void;
   toggleDarkMode: () => void;
-  openCreateModal: (defaultDate?: string, defaultStatus?: TodoStatus, defaultQuadrant?: Quadrant) => void;
+  openCreateModal: (defaultDate?: string, defaultStatus?: TodoStatus, defaultQuadrant?: Quadrant, defaultTitle?: string, planId?: string, defaultTags?: string[]) => void;
   openEditModal: (todoId: string) => void;
   closeModal: () => void;
   
@@ -34,6 +39,8 @@ interface UIState {
 
   openTagModal: () => void;
   closeTagModal: () => void;
+  openNewTagModal: () => void;
+  closeNewTagModal: () => void;
 
   openListModal: (filter: ListModalFilter) => void;
   closeListModal: () => void;
@@ -42,7 +49,12 @@ interface UIState {
   selectCalendarDate: (date: string | null) => void;
   setSearchQuery: (query: string) => void;
   setTagFilter: (tag: string | null) => void;
+  setDateFilter: (filter: 'all' | 'today') => void;
   toggleOverdue: () => void;
+  
+  toastMessage: string | null;
+  showToast: (message: string) => void;
+  hideToast: () => void;
 }
 
 export const useUIStore = create<UIState>()((set) => ({
@@ -51,16 +63,22 @@ export const useUIStore = create<UIState>()((set) => ({
   isModalOpen: false,
   isAuthModalOpen: false,
   isTagModalOpen: false,
+  isNewTagModalOpen: false,
   editingTodoId: null,
   defaultDueDate: undefined,
   defaultStatus: undefined,
   defaultQuadrant: undefined,
+  defaultTitle: undefined,
+  defaultPlanId: undefined,
+  defaultTags: undefined,
   calendarCurrentMonth: getMonthStr(new Date()),
   selectedCalendarDate: null,
   searchQuery: '',
   tagFilter: null,
+  dateFilter: 'all',
   collapsedOverdue: false,
   listModalFilter: null,
+  toastMessage: null,
 
   setView: (view) => set({ currentView: view }),
 
@@ -74,7 +92,7 @@ export const useUIStore = create<UIState>()((set) => ({
     return { isDarkMode: next };
   }),
 
-  openCreateModal: (defaultDate, defaultStatus, defaultQuadrant) => {
+  openCreateModal: (defaultDate, defaultStatus, defaultQuadrant, defaultTitle, planId, defaultTags) => {
     if (!useAuthStore.getState().isAuthenticated) {
       set({ isAuthModalOpen: true });
       return;
@@ -85,6 +103,9 @@ export const useUIStore = create<UIState>()((set) => ({
       defaultDueDate: defaultDate,
       defaultStatus,
       defaultQuadrant,
+      defaultTitle,
+      defaultPlanId: planId,
+      defaultTags,
     });
   },
 
@@ -94,7 +115,10 @@ export const useUIStore = create<UIState>()((set) => ({
     defaultDueDate: undefined,
     defaultStatus: undefined,
     defaultQuadrant: undefined,
-    listModalFilter: null, // close list modal to prevent conflict
+    defaultTitle: undefined,
+    defaultPlanId: undefined,
+    defaultTags: undefined,
+    listModalFilter: null,
   }),
 
   closeModal: () => set({
@@ -103,6 +127,9 @@ export const useUIStore = create<UIState>()((set) => ({
     defaultDueDate: undefined,
     defaultStatus: undefined,
     defaultQuadrant: undefined,
+    defaultTitle: undefined,
+    defaultPlanId: undefined,
+    defaultTags: undefined,
   }),
 
   openAuthModal: () => set({ isAuthModalOpen: true }),
@@ -110,6 +137,8 @@ export const useUIStore = create<UIState>()((set) => ({
 
   openTagModal: () => set({ isTagModalOpen: true }),
   closeTagModal: () => set({ isTagModalOpen: false }),
+  openNewTagModal: () => set({ isNewTagModalOpen: true }),
+  closeNewTagModal: () => set({ isNewTagModalOpen: false }),
 
   openListModal: (filter) => set({ listModalFilter: filter }),
   closeListModal: () => set({ listModalFilter: null }),
@@ -118,5 +147,13 @@ export const useUIStore = create<UIState>()((set) => ({
   selectCalendarDate: (date) => set({ selectedCalendarDate: date }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setTagFilter: (tag) => set({ tagFilter: tag }),
+  setDateFilter: (filter) => set({ dateFilter: filter }),
   toggleOverdue: () => set((state) => ({ collapsedOverdue: !state.collapsedOverdue })),
+  showToast: (message) => {
+    set({ toastMessage: message });
+    setTimeout(() => {
+      set({ toastMessage: null });
+    }, 3000);
+  },
+  hideToast: () => set({ toastMessage: null }),
 }));

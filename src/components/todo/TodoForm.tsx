@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
-import { Calendar, Tag, X, Flag, LayoutGrid, AlignLeft, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Calendar, Tag, X, Flag, LayoutGrid, AlignLeft, Trash2, ChevronRight } from 'lucide-react';
 import { getTagColor } from '../../utils/colorUtils';
 import { clsx } from 'clsx';
 import type { Priority, TodoStatus, Quadrant, CreateTodoInput } from '../../types';
-import { QUADRANT_LABELS } from '../../types';
+import { QUADRANT_LABELS, TAG_TONES } from '../../types';
 import { useTodoStore } from '../../store/todoStore';
 import { useUIStore } from '../../store/uiStore';
+import { usePlanStore } from '../../store/planStore';
 import { getNextSortOrder } from '../../utils/todoUtils';
 import { TODAY } from '../../utils/dateUtils';
 
@@ -19,20 +20,29 @@ interface TodoFormProps {
 }
 
 export function TodoForm({ onClose }: TodoFormProps) {
-  const { todos, globalTags, addTodo, updateTodo } = useTodoStore();
-  const { editingTodoId, defaultDueDate, defaultStatus, defaultQuadrant } = useUIStore();
+  const { todos, addTodo, updateTodo } = useTodoStore();
+  const { editingTodoId, defaultDueDate, defaultStatus, defaultQuadrant, defaultTitle, defaultPlanId, defaultTags } = useUIStore();
+  const { updatePlan, tags: planTags } = usePlanStore();
 
   const isEditing = !!editingTodoId;
   const editingTodo = isEditing ? todos.find(t => t.id === editingTodoId) : null;
 
-  const [title, setTitle] = useState(editingTodo?.title ?? '');
+  // Use the default tags provided by uiStore, or parse from searchQuery if it was passed that way
+  const initialTags = useMemo(() => {
+    if (editingTodo?.tags) return editingTodo.tags;
+    if (defaultTags && defaultTags.length > 0) return defaultTags;
+    return [];
+  }, [editingTodo?.tags, defaultTags]);
+
+  const [title, setTitle] = useState(editingTodo?.title ?? defaultTitle ?? '');
   const [note, setNote] = useState(editingTodo?.note ?? '');
   const [dueDate, setDueDate] = useState(editingTodo?.dueDate ?? defaultDueDate ?? '');
   const [priority, setPriority] = useState<Priority>(editingTodo?.priority ?? 'none');
   const [status, setStatus] = useState<TodoStatus>(editingTodo?.status ?? defaultStatus ?? 'todo');
   const [quadrant, setQuadrant] = useState<Quadrant>(editingTodo?.quadrant ?? defaultQuadrant ?? 'not_important_not_urgent');
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>(editingTodo?.tags ?? []);
+  const [tags, setTags] = useState<string[]>(initialTags);
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
 
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -40,12 +50,14 @@ export function TodoForm({ onClose }: TodoFormProps) {
     titleRef.current?.focus();
   }, []);
 
-  const addTag = () => {
-    const trimmed = tagInput.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
+  const toggleProject = (projectId: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(projectId)) {
+      newSet.delete(projectId);
+    } else {
+      newSet.add(projectId);
     }
-    setTagInput('');
+    setExpandedProjects(newSet);
   };
 
   const removeTag = (tag: string) => {
@@ -53,15 +65,11 @@ export function TodoForm({ onClose }: TodoFormProps) {
   };
 
   const handleSubmit = () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !dueDate) return;
 
-    let finalTags = tags;
-    const trimmedInput = tagInput.trim();
-    if (trimmedInput && !tags.includes(trimmedInput)) {
-      finalTags = [...tags, trimmedInput];
-    }
+    const finalTags = tags;
 
-    // Auto-save any new tags to global
+    // Auto-save any new tags to global (legacy logic, keep to avoid breaking todoStore if used elsewhere)
     finalTags.forEach(t => useTodoStore.getState().addGlobalTag(t));
 
     if (isEditing && editingTodo) {
@@ -78,8 +86,12 @@ export function TodoForm({ onClose }: TodoFormProps) {
         dueDate: dueDate || undefined,
         priority, status, quadrant, tags: finalTags,
         sortOrder: getNextSortOrder(todos),
+        planId: defaultPlanId,
       };
-      addTodo(input);
+      const newTodoId = addTodo(input);
+      if (defaultPlanId) {
+        updatePlan(defaultPlanId, { todoId: newTodoId });
+      }
     }
     onClose();
   };
@@ -144,7 +156,7 @@ export function TodoForm({ onClose }: TodoFormProps) {
         {/* Row: Due date */}
         <div className="flex items-center gap-3">
           <Calendar size={14} className="text-gray-400 flex-shrink-0" />
-          <span className="text-xs text-gray-400 w-12 flex-shrink-0">到期日</span>
+          <span className="text-xs text-gray-400 w-12 flex-shrink-0">到期日<span className="text-red-400 ml-0.5">*</span></span>
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -152,6 +164,7 @@ export function TodoForm({ onClose }: TodoFormProps) {
               min={TODAY()}
               onChange={e => setDueDate(e.target.value)}
               className="text-sm text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+              required
             />
             {dueDate && (
               <button onClick={() => setDueDate('')} className="text-gray-400 hover:text-red-400 transition-colors">
@@ -233,47 +246,114 @@ export function TodoForm({ onClose }: TodoFormProps) {
 
         {/* Row: Tags */}
         <div className="flex items-start gap-3">
-          <Tag size={14} className="text-gray-400 flex-shrink-0 mt-1" />
-          <span className="text-xs text-gray-400 w-12 flex-shrink-0 mt-1">标签</span>
+          <Tag size={14} className="text-gray-400 flex-shrink-0 mt-2" />
+          <span className="text-xs text-gray-400 w-12 flex-shrink-0 mt-2">标签</span>
           <div className="flex-1 space-y-2">
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] text-[var(--bg)] font-medium shadow-sm transition-transform hover:scale-105" style={{ background: getTagColor(tag) }}>
-                    {tag}
-                    <button type="button" onClick={() => removeTag(tag)} className="hover:bg-black/20 rounded-full p-0.5 transition-colors">
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                placeholder="输入标签后按 Enter…"
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-all"
-              />
-            </div>
-            
-            {/* Recent Tags Suggestions */}
-            {globalTags.filter(t => !tags.includes(t)).length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {[...globalTags].filter(t => !tags.includes(t)).reverse().slice(0, 5).map(tag => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => {
-                      setTags([...tags, tag]);
-                    }}
-                    className="inline-flex items-center px-2 py-1 text-[var(--ink-2)] bg-[var(--surface-2)] border border-[var(--line-soft)] rounded-md text-[11px] font-medium hover:bg-[var(--hover)] hover:text-[var(--ink-1)] transition-colors"
-                  >
-                    + {tag}
+            <div className="flex flex-wrap items-center gap-1.5 min-h-[28px]">
+              {tags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] text-[var(--bg)] font-medium shadow-sm transition-transform hover:scale-105" style={{ background: getTagColor(tag) }}>
+                  {tag}
+                  <button type="button" onClick={() => removeTag(tag)} className="hover:bg-black/20 rounded-full p-0.5 transition-colors">
+                    <X size={10} />
                   </button>
-                ))}
+                </span>
+              ))}
+              
+              <button
+                type="button"
+                onClick={() => setShowTagMenu(true)}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] bg-[var(--surface-2)] border border-[var(--line-soft)] rounded-lg hover:bg-[var(--hover)] hover:text-[var(--ink-1)] transition-colors"
+              >
+                选择标签
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => useUIStore.getState().openNewTagModal()}
+                className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] bg-[var(--surface-2)] border border-[var(--line-soft)] rounded-lg hover:bg-[var(--hover)] hover:text-[var(--ink-1)] transition-colors"
+              >
+                + 新建标签
+              </button>
+            </div>
+
+            {/* Tag Selection Modal */}
+            {showTagMenu && (
+              <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4 backdrop-blur-[2px]" onClick={() => setShowTagMenu(false)}>
+                <div className="bg-[var(--bg)] w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                  <div className="px-5 py-4 border-b border-[var(--line-soft)] flex justify-between items-center bg-[var(--surface)]">
+                    <h3 className="font-semibold text-[var(--ink-1)]">选择标签</h3>
+                    <button onClick={() => setShowTagMenu(false)} className="p-1 hover:bg-[var(--hover)] rounded-md transition-colors text-[var(--ink-3)] hover:text-[var(--ink-1)]">
+                      <X size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+                    {planTags.filter(t => t.level === 'L1').map(pTag => {
+                      const isExpanded = expandedProjects.has(pTag.id);
+                      const pCats = planTags.filter(cTag => cTag.level === 'L2' && cTag.parentId === pTag.id);
+                      
+                      return (
+                        <div key={pTag.id} className="tag-group">
+                          <div 
+                            className="flex items-center p-2 rounded-lg border border-[var(--line-soft)] bg-[var(--surface)] hover:bg-[var(--hover)] transition-colors cursor-pointer group"
+                            onClick={() => {
+                              if (!tags.includes(pTag.name)) setTags([...tags, pTag.name]);
+                              setShowTagMenu(false);
+                            }}
+                          >
+                            <button
+                              className="p-1.5 text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleProject(pTag.id);
+                              }}
+                            >
+                              <ChevronRight size={14} className={clsx("transition-transform", isExpanded && "rotate-90")} />
+                            </button>
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full flex-shrink-0 mx-2" 
+                              style={{ background: TAG_TONES[pTag.tone] }}
+                            />
+                            <span className="font-medium text-[var(--ink-1)] flex-1">
+                              {pTag.name}
+                            </span>
+                          </div>
+
+                          {isExpanded && pCats.length > 0 && (
+                            <div className="pl-6 mt-1 space-y-1 border-l border-[var(--line-soft)] ml-4">
+                              {pCats.map(cTag => {
+                                return (
+                                  <div 
+                                    key={cTag.id}
+                                    className="flex items-center p-2 pl-3 rounded-md hover:bg-[var(--hover)] transition-colors cursor-pointer"
+                                    onClick={() => {
+                                      if (!tags.includes(cTag.name)) setTags([...tags, cTag.name]);
+                                      setShowTagMenu(false);
+                                    }}
+                                  >
+                                    <span 
+                                      className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2" 
+                                      style={{ background: TAG_TONES[cTag.tone] }}
+                                    />
+                                    <span className="text-sm text-[var(--ink-2)]">
+                                      {cTag.name}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    
+                    {planTags.filter(t => t.level === 'L1').length === 0 && (
+                      <div className="text-center py-8 text-sm text-[var(--ink-4)]">
+                        暂无标签，请先新建标签
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -302,7 +382,7 @@ export function TodoForm({ onClose }: TodoFormProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!title.trim()}
+            disabled={!title.trim() || !dueDate}
             className="primary-btn !px-6 !py-2.5 !h-auto !w-auto text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span>{isEditing ? '保存更改' : '创建待办'}</span>

@@ -15,6 +15,7 @@ import { TimelineView } from './components/views/TimelineView/TimelineView';
 import { StatusView } from './components/views/StatusView/StatusView';
 import { CalendarView } from './components/views/CalendarView/CalendarView';
 import { QuadrantView } from './components/views/QuadrantView/QuadrantView';
+import { MonthPlanView, NewTagModal } from './components/views/MonthPlanView';
 import { AuthModal } from './components/auth/AuthModal';
 import { useTodoStore } from './store/todoStore';
 import { useUIStore } from './store/uiStore';
@@ -23,7 +24,7 @@ import type { TodoStatus, Quadrant } from './types';
 function App() {
   const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
   const { todos, reorderTodos, moveTodoToStatus, moveTodoToQuadrant, moveTodoToDate } = useTodoStore();
-  const { currentView, isDarkMode } = useUIStore();
+  const { currentView, isDarkMode, toastMessage } = useUIStore();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -40,14 +41,11 @@ function App() {
 
   const activeTodo = activeTodoId ? todos.find(t => t.id === activeTodoId) : null;
 
-  // Custom collision detection strategy for better UX across different views
   const customCollisionDetection = (args: any) => {
-    // First, let's see if the pointer is currently within any droppable container
     const pointerCollisions = pointerWithin(args);
     if (pointerCollisions.length > 0) {
       return pointerCollisions;
     }
-    // Fallback to rectIntersection for empty columns or edge cases
     return rectIntersection(args);
   };
 
@@ -102,6 +100,7 @@ function App() {
     status: <StatusView />,
     calendar: <CalendarView />,
     quadrant: <QuadrantView />,
+    monthPlan: <MonthPlanView />,
   };
 
   return (
@@ -126,7 +125,15 @@ function App() {
       <TodoModal />
       <TodoListModal />
       <TagModal />
+      <NewTagModal />
       <AuthModal />
+      
+      {/* Global Toast */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[999] px-4 py-2 bg-[var(--surface)] text-[var(--ink-1)] border border-[var(--line)] rounded-md shadow-lg font-medium text-sm animate-fade-in">
+          {toastMessage}
+        </div>
+      )}
     </DndContext>
   );
 }
