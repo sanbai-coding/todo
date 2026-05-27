@@ -1,7 +1,7 @@
 services:
   # Node.js API Service
   - type: web
-    name: todo-api
+    name: zhouzhou-api
     env: node
     region: singapore # You can change this to your preferred region
     plan: free
