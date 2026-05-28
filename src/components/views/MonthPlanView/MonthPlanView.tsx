@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, Edit2, RotateCcw } from 'lucide-react';
+import { SortableContext, useSortable, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { usePlanStore } from '../../../store/planStore';
 import { useTodoStore } from '../../../store/todoStore';
 import { useUIStore } from '../../../store/uiStore';
@@ -178,11 +180,23 @@ interface CategorySectionProps {
 }
 
 function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
-  const { categories, plans, toggleCategoryOpen, addPlan } = usePlanStore();
+  const { categories, plans, toggleCategoryOpen, addPlan, updateCategory } = usePlanStore();
   const category = categories.find(c => c.id === categoryId);
   const categoryPlans = plans.filter(p => p.categoryId === categoryId);
   const [isAdding, setIsAdding] = useState(false);
   const [newPlanTitle, setNewPlanTitle] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(category?.name || '');
+
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: `category-${category?.projectId}-${categoryId}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   if (!category) return null;
 
@@ -194,17 +208,76 @@ function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
     }
   };
 
+  const submitEdit = () => {
+    if (editName.trim() && editName !== category.name) {
+      updateCategory(category.id, { name: editName.trim() });
+    } else {
+      setEditName(category.name);
+    }
+    setIsEditing(false);
+  };
+
   return (
-    <div className="cat">
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={clsx("cat", isDragging && "opacity-50")}
+    >
       <div
         className="cat-head"
         data-open={category.isOpen}
-        onClick={() => toggleCategoryOpen(category.id)}
+        {...attributes}
+        {...listeners}
+        onClick={(e) => {
+          if (!isEditing && !e.defaultPrevented) {
+            e.preventDefault();
+            // Click to toggle open
+            toggleCategoryOpen(category.id);
+          }
+        }}
+        onDoubleClick={(e) => {
+          if (!isEditing && !e.defaultPrevented) {
+            e.preventDefault();
+            setIsEditing(true);
+          }
+        }}
       >
         <span className="caret">
           <ChevronDown size={10} />
         </span>
-        <span className="cname">{category.name}</span>
+        {isEditing ? (
+          <input
+            autoFocus
+            className="flex-1 bg-transparent outline-none font-medium px-1 text-[13px]"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={submitEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitEdit();
+              if (e.key === 'Escape') {
+                setEditName(category.name);
+                setIsEditing(false);
+              }
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
+        ) : (
+          <span 
+            className="cname cursor-text"
+            onClick={(e) => {
+              if (!isEditing && !e.defaultPrevented) {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsEditing(true);
+              }
+            }}
+          >
+            {category.name}
+          </span>
+        )}
         <span className="ccnt">{categoryPlans.length}</span>
         <button
           className="cadd"
@@ -260,11 +333,25 @@ interface ProjectColumnProps {
 }
 
 function ProjectColumn({ projectId }: ProjectColumnProps) {
-  const { projects, categories, addCategory } = usePlanStore();
+  const { projects, categories, addCategory, updateProject } = usePlanStore();
   const project = projects.find(p => p.id === projectId);
-  const projectCategories = categories.filter(c => project?.categoryIds.includes(c.id));
+  const projectCategories = (project?.categoryIds || [])
+    .map(id => categories.find(c => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(project?.name || '');
+
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: `project-${projectId}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   if (!project) return null;
 
@@ -278,17 +365,61 @@ function ProjectColumn({ projectId }: ProjectColumnProps) {
     }
   };
 
-
+  const submitEdit = () => {
+    if (editName.trim() && editName !== project.name) {
+      updateProject(project.id, { name: editName.trim() });
+    } else {
+      setEditName(project.name);
+    }
+    setIsEditing(false);
+  };
 
   const totalPlans = projectCategories.reduce((acc, cat) => acc + cat.planIds.length, 0);
 
   return (
     <div
-      className="proj-col"
-      style={{ '--proj-color': projectTone } as React.CSSProperties}
+      ref={setNodeRef}
+      className={clsx("proj-col", isDragging && "opacity-50")}
+      style={{ '--proj-color': projectTone, ...style } as React.CSSProperties}
     >
-      <header className="proj-head">
-        <span className="pname">{project.name}</span>
+      <header 
+        className="proj-head"
+        {...attributes}
+        {...listeners}
+      >
+        {isEditing ? (
+          <input
+            autoFocus
+            className="flex-1 bg-transparent outline-none font-bold px-1"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={submitEdit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitEdit();
+              if (e.key === 'Escape') {
+                setEditName(project.name);
+                setIsEditing(false);
+              }
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
+        ) : (
+          <span 
+            className="pname cursor-text"
+            onClick={(e) => {
+              if (!isEditing && !e.defaultPrevented) {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsEditing(true);
+              }
+            }}
+          >
+            {project.name}
+          </span>
+        )}
         <span className="pcnt">{totalPlans}</span>
         <div className="pact">
           <button
@@ -303,9 +434,11 @@ function ProjectColumn({ projectId }: ProjectColumnProps) {
         </div>
       </header>
       <div className="proj-body">
-        {projectCategories.map(cat => (
-          <CategorySection key={cat.id} categoryId={cat.id} projectTone={projectTone} />
-        ))}
+        <SortableContext items={project.categoryIds.map(id => `category-${project.id}-${id}`)} strategy={verticalListSortingStrategy}>
+          {projectCategories.map(cat => (
+            <CategorySection key={cat.id} categoryId={cat.id} projectTone={projectTone} />
+          ))}
+        </SortableContext>
         {isAddingCategory ? (
           <div className="cat-add-input">
             <input
@@ -415,9 +548,11 @@ export function MonthPlanView() {
       </div>
 
       <div className="month-board">
-        {projects.map(project => (
-          <ProjectColumn key={project.id} projectId={project.id} />
-        ))}
+        <SortableContext items={projects.map(p => `project-${p.id}`)} strategy={horizontalListSortingStrategy}>
+          {projects.map(project => (
+            <ProjectColumn key={project.id} projectId={project.id} />
+          ))}
+        </SortableContext>
         
         <button 
           className="proj-add"

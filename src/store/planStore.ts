@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { nanoid } from 'nanoid';
+import { arrayMove } from '@dnd-kit/sortable';
 import type { Project, Category, Plan, Tag, TagTone, TagLevel } from '../types';
 import { useAuthStore } from './authStore';
 
@@ -17,12 +18,14 @@ interface PlanState {
   updateProject: (id: string, data: Partial<Omit<Project, 'id' | 'createdAt'>>) => void;
   deleteProject: (id: string) => void;
   toggleProjectOpen: (id: string) => void;
+  reorderProjects: (activeId: string, overId: string) => void;
 
   copyProject: (id: string) => void;
   addCategory: (projectId: string, name: string) => void;
   updateCategory: (id: string, data: Partial<Omit<Category, 'id' | 'createdAt'>>) => void;
   deleteCategory: (id: string) => void;
   toggleCategoryOpen: (id: string) => void;
+  reorderCategories: (projectId: string, activeId: string, overId: string) => void;
 
   addPlan: (projectId: string, categoryId: string, title: string) => void;
   copyPlan: (planId: string) => void;
@@ -136,6 +139,19 @@ export const usePlanStore = create<PlanState>()(
           if (project) {
             project.isOpen = !project.isOpen;
           }
+        });
+        triggerSync();
+      },
+
+      reorderProjects: (activeId, overId) => {
+        set((state) => {
+          const activeIndex = state.projects.findIndex(p => p.id === activeId);
+          const overIndex = state.projects.findIndex(p => p.id === overId);
+          if (activeIndex === -1 || overIndex === -1) return;
+          state.projects = arrayMove(state.projects, activeIndex, overIndex);
+          state.projects.forEach((p, i) => {
+            p.sortOrder = (i + 1) * 1000;
+          });
         });
         triggerSync();
       },
@@ -288,6 +304,22 @@ export const usePlanStore = create<PlanState>()(
             category.isOpen = !category.isOpen;
           }
         });
+      },
+
+      reorderCategories: (projectId, activeId, overId) => {
+        set((state) => {
+          const project = state.projects.find(p => p.id === projectId);
+          if (!project) return;
+          const activeIndex = project.categoryIds.findIndex(id => id === activeId);
+          const overIndex = project.categoryIds.findIndex(id => id === overId);
+          if (activeIndex === -1 || overIndex === -1) return;
+          project.categoryIds = arrayMove(project.categoryIds, activeIndex, overIndex);
+          project.categoryIds.forEach((id, i) => {
+            const cat = state.categories.find(c => c.id === id);
+            if (cat) cat.sortOrder = (i + 1) * 1000;
+          });
+        });
+        triggerSync();
       },
 
       addPlan: (projectId, categoryId, title) => {

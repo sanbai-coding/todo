@@ -20,12 +20,14 @@ import { AuthModal } from './components/auth/AuthModal';
 import { useTodoStore } from './store/todoStore';
 import { useUIStore } from './store/uiStore';
 import { useAuthStore } from './store/authStore';
+import { usePlanStore } from './store/planStore';
 import { generateAIPMData } from './utils/mockDataGenerator';
 import type { TodoStatus, Quadrant } from './types';
 
 function App() {
-  const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
+  const [activeDragItem, setActiveDragItem] = useState<{ id: string, type: 'todo' | 'project' | 'category' } | null>(null);
   const { todos, reorderTodos, moveTodoToStatus, moveTodoToQuadrant, moveTodoToDate } = useTodoStore();
+  const { reorderProjects, reorderCategories } = usePlanStore();
   const { currentView, isDarkMode, toastMessage } = useUIStore();
   const user = useAuthStore(state => state.user);
 
@@ -53,7 +55,9 @@ function App() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
 
-  const activeTodo = activeTodoId ? todos.find(t => t.id === activeTodoId) : null;
+  const activeTodo = activeDragItem?.type === 'todo' ? todos.find(t => t.id === activeDragItem.id) : null;
+  const activeProject = activeDragItem?.type === 'project' ? usePlanStore.getState().projects.find(p => `project-${p.id}` === activeDragItem.id) : null;
+  const activeCategory = activeDragItem?.type === 'category' ? usePlanStore.getState().categories.find(c => `category-${c.projectId}-${c.id}` === activeDragItem.id) : null;
 
   const customCollisionDetection = (args: any) => {
     const pointerCollisions = pointerWithin(args);
@@ -64,15 +68,40 @@ function App() {
   };
 
   const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveTodoId(active.id as string);
+    const id = active.id as string;
+    if (id.startsWith('project-')) {
+      setActiveDragItem({ id, type: 'project' });
+    } else if (id.startsWith('category-')) {
+      setActiveDragItem({ id, type: 'category' });
+    } else {
+      setActiveDragItem({ id, type: 'todo' });
+    }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveTodoId(null);
+    setActiveDragItem(null);
     if (!over || active.id === over.id) return;
 
     const overId = over.id as string;
     const activeId = active.id as string;
+
+    if (activeId.startsWith('project-') && overId.startsWith('project-')) {
+      reorderProjects(activeId.replace('project-', ''), overId.replace('project-', ''));
+      return;
+    }
+
+    if (activeId.startsWith('category-') && overId.startsWith('category-')) {
+      const [, activeProjId, activeCatId] = activeId.split('-');
+      const [, overProjId, overCatId] = overId.split('-');
+      if (activeProjId === overProjId) {
+        reorderCategories(activeProjId, activeCatId, overCatId);
+      }
+      return;
+    }
+
+    if (activeId.startsWith('project-') || activeId.startsWith('category-')) {
+      return;
+    }
 
     if (overId.startsWith('status-column-')) {
       const status = overId.replace('status-column-', '') as TodoStatus;
@@ -134,6 +163,20 @@ function App() {
 
       <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
         {activeTodo && <DragOverlayContent todo={activeTodo} />}
+        {activeProject && (
+          <div className="proj-col opacity-80 scale-105 shadow-xl bg-[var(--surface)] p-3 rounded-xl border-2 border-[var(--brand)]">
+            <header className="proj-head">
+              <span className="pname font-bold">{activeProject.name}</span>
+            </header>
+          </div>
+        )}
+        {activeCategory && (
+          <div className="cat opacity-80 scale-105 shadow-xl bg-[var(--surface)] p-2 rounded-lg border-2 border-[var(--brand)]">
+            <div className="cat-head">
+              <span className="cname font-medium">{activeCategory.name}</span>
+            </div>
+          </div>
+        )}
       </DragOverlay>
 
       <TodoModal />
