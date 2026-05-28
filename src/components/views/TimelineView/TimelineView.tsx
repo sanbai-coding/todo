@@ -38,42 +38,13 @@ export function TimelineView() {
   return (
     <div className="h-full overflow-y-auto min-h-0">
       <div className="max-w-2xl mx-auto px-6 py-6 space-y-5">
-        {/* === OVERDUE === */}
-        {overdue.length > 0 && (
-          <div className="rounded-2xl border border-red-100 dark:border-red-900/40 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
-            <button
-              onClick={toggleOverdue}
-              className="w-full flex items-center gap-2.5 px-4 py-3 bg-red-50 dark:bg-red-950/40 border-b border-red-100 dark:border-red-900/40"
-            >
-              <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
-              <span className="text-sm font-semibold text-red-600 dark:text-red-400">逾期未完成</span>
-              <span className="ml-1 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
-                {overdue.length}
-              </span>
-              <div className="ml-auto">
-                {collapsedOverdue
-                  ? <ChevronRight size={14} className="text-red-400" />
-                  : <ChevronDown size={14} className="text-red-400" />
-                }
-              </div>
-            </button>
-            <div
-              className="overflow-hidden transition-all duration-300"
-              style={{ maxHeight: collapsedOverdue ? 0 : 9999 }}
-            >
-              <div className="p-3 space-y-2">
-                <DroppableDay dateStr="overdue">
-                  <SortableContext items={overdue.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                    {overdue.map(todo => <TodoItem key={todo.id} todo={todo} showDate={true} />)}
-                  </SortableContext>
-                </DroppableDay>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* === TODAY === */}
         <div className="overview">
+          <button className="ov-cell text-left" onClick={() => openListModal('overdue')}>
+            <div className="lbl"><span className="dot danger" />已逾期</div>
+            <div className="num text-red-600 dark:text-red-400 font-bold">{overdue.length}</div>
+            <div className="bar danger"><i style={{ width: "100%" }}/></div>
+          </button>
           <div className="ov-cell">
             <div className="lbl">今日</div>
             <div className="num">{doneToday}<span className="total"> / {totalToday}</span></div>

@@ -2,6 +2,7 @@ import { Modal } from '../common/Modal';
 import { useUIStore } from '../../store/uiStore';
 import { useTodoStore } from '../../store/todoStore';
 import { TodoItem } from './TodoItem';
+import { isOverdue } from '../../utils/dateUtils';
 
 export function TodoListModal() {
   const { listModalFilter, closeListModal } = useUIStore();
@@ -28,6 +29,10 @@ export function TodoListModal() {
     case 'high_priority':
       filteredTodos = todos.filter(t => t.priority === 'high');
       title = '高优先级事项';
+      break;
+    case 'overdue':
+      filteredTodos = todos.filter(t => t.status !== 'done' && t.status !== 'cancelled' && t.dueDate && isOverdue(t.dueDate));
+      title = '已逾期事项';
       break;
   }
 

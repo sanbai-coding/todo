@@ -3,7 +3,7 @@ import type { ViewType, TodoStatus, Quadrant } from '../types';
 import { getMonthStr } from '../utils/dateUtils';
 import { useAuthStore } from './authStore';
 
-export type ListModalFilter = 'pending' | 'done' | 'in_progress' | 'high_priority' | null;
+export type ListModalFilter = 'pending' | 'done' | 'in_progress' | 'high_priority' | 'overdue' | null;
 
 interface UIState {
   currentView: ViewType;
