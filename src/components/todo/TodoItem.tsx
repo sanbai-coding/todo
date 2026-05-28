@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Pencil, Zap } from 'lucide-react';
+import { Pencil, Zap, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -75,8 +75,14 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
               </span>
             </div>
 
-          {!isDone && (todo.priority !== 'none' || todo.dueDate || (todo.tags && todo.tags.length > 0)) && (
+          {!isDone && (todo.priority !== 'none' || todo.dueDate || (todo.tags && todo.tags.length > 0) || todo.note) && (
             <div className="meta">
+              {todo.note && (
+                <span className="chip !text-[var(--ink-2)] !bg-[var(--surface-2)] cursor-help" data-tooltip={todo.note}>
+                  <FileText size={10} className="mr-0.5 inline-block opacity-70" />
+                  备注
+                </span>
+              )}
               {todo.priority !== 'none' && (
                 <span className={clsx("chip", todo.priority === 'high' ? 'danger' : todo.priority === 'medium' ? 'warn' : '')}>
                   <span className="dot"></span>
@@ -97,7 +103,6 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
                <button data-tooltip="设为今日" onClick={(e) => { e.stopPropagation(); handleSetToday(); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--brand)]"><Zap size={11} className="fill-current" /></button>
              )}
              <button data-tooltip="编辑" onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={11} /></button>
-             <button data-tooltip="删除" onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={11} /></button>
           </div>
         </div>
 
@@ -131,6 +136,12 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
         <div className="task-main">
           <div className="task-title">{todo.title}</div>
           <div className="task-meta">
+            {todo.note && (
+              <span className="chip !text-[var(--ink-2)] !bg-[var(--surface-2)] cursor-help" data-tooltip={todo.note}>
+                <FileText size={12} className="mr-0.5 inline-block opacity-70" />
+                备注
+              </span>
+            )}
             {todo.tags?.map(tag => (
               <span key={tag} className="tag text-[var(--bg)] shadow-sm font-medium" style={{ background: getTagColor(tag) }}>
                 {tag}
@@ -152,7 +163,6 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
              <button data-tooltip="设为今日" onClick={(e) => { e.stopPropagation(); handleSetToday(); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--brand)]"><Zap size={12} className="fill-current" /></button>
            )}
            <button data-tooltip="编辑" onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={12} /></button>
-           <button data-tooltip="删除" onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={12} /></button>
         </div>
       </div>
 
