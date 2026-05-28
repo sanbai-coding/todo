@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,7 +7,7 @@ import type { Todo } from '../../types';
 import { PRIORITY_LABELS } from '../../types';
 import { useTodoStore } from '../../store/todoStore';
 import { useUIStore } from '../../store/uiStore';
-import { formatDateShort } from '../../utils/dateUtils';
+import { formatDateShort, isOverdue, dateToStr } from '../../utils/dateUtils';
 import { getTagColor } from '../../utils/colorUtils';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 
@@ -33,9 +33,15 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
   };
 
   const isDone = todo.status === 'done';
+  const isTodoOverdue = !isDone && todo.status !== 'cancelled' && todo.dueDate && isOverdue(todo.dueDate);
 
   const handleCheck = () => {
     toggleComplete(todo.id);
+  };
+
+  const handleSetToday = () => {
+    useTodoStore.getState().updateTodo(todo.id, { dueDate: dateToStr(new Date()) });
+    useUIStore.getState().showToast('已设为今日待办');
   };
 
   const priMap: Record<string, string> = { high: 'h', medium: 'm', low: 'l', none: '' };
@@ -86,9 +92,12 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
             </div>
           )}
 
-          <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-             <button onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={11} /></button>
-             <button onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={11} /></button>
+          <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--surface)] shadow-sm rounded-md px-1">
+             {isTodoOverdue && (
+               <button data-tooltip="设为今日" onClick={(e) => { e.stopPropagation(); handleSetToday(); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--brand)]"><Zap size={11} className="fill-current" /></button>
+             )}
+             <button data-tooltip="编辑" onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={11} /></button>
+             <button data-tooltip="删除" onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={11} /></button>
           </div>
         </div>
 
@@ -139,8 +148,11 @@ export function TodoItem({ todo, showDate = true, variant = 'row' }: TodoItemPro
           </div>
         </div>
         <div className="task-tail flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-           <button onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={12} /></button>
-           <button onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={12} /></button>
+           {isTodoOverdue && (
+             <button data-tooltip="设为今日" onClick={(e) => { e.stopPropagation(); handleSetToday(); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--brand)]"><Zap size={12} className="fill-current" /></button>
+           )}
+           <button data-tooltip="编辑" onClick={(e) => { e.stopPropagation(); openEditModal(todo.id); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--ink-1)]"><Pencil size={12} /></button>
+           <button data-tooltip="删除" onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }} className="p-1 text-[var(--ink-3)] hover:text-[var(--danger)]"><Trash2 size={12} /></button>
         </div>
       </div>
 

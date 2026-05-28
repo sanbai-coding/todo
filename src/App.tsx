@@ -34,6 +34,36 @@ function App() {
     }
   }, [isDarkMode]);
 
+  useEffect(() => {
+    // 临时：为用户生成逾期预览数据
+    if (!localStorage.getItem('hasGeneratedMockOverdue_v1')) {
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const lastWeek = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+      
+      useTodoStore.getState().addTodo({
+        title: '整理上个月的发票报销（演示数据）',
+        status: 'todo',
+        priority: 'high',
+        quadrant: 'important_urgent',
+        dueDate: lastWeek,
+        tags: [],
+        sortOrder: 0,
+      });
+
+      useTodoStore.getState().addTodo({
+        title: '更新系统安全证书（演示数据）',
+        status: 'in_progress',
+        priority: 'medium',
+        quadrant: 'important_not_urgent',
+        dueDate: yesterday,
+        tags: [],
+        sortOrder: 0,
+      });
+      
+      localStorage.setItem('hasGeneratedMockOverdue_v1', 'true');
+    }
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
