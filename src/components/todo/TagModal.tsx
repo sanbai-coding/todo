@@ -9,6 +9,8 @@ export function TagModal() {
   const { isTagModalOpen, closeTagModal, openNewTagModal } = useUIStore();
   const { tags, projects, categories, plans, deleteTag, deleteProject } = usePlanStore();
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [addingCategoryId, setAddingCategoryId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   if (!isTagModalOpen) return null;
 
@@ -132,11 +134,7 @@ export function TagModal() {
 
                   {isExpanded && (
                     <div className="ml-6 mt-1 space-y-1">
-                      {projectCategories.length === 0 ? (
-                        <div className="text-xs text-[var(--ink-4)] py-2 pl-3">
-                          暂无分类
-                        </div>
-                      ) : (
+                      {projectCategories.length > 0 && (
                         projectCategories.map(({ category, tag }) => {
                           if (!category || !tag) return null;
                           const catColor = TAG_TONES[tag.tone];
@@ -173,6 +171,50 @@ export function TagModal() {
                             </div>
                           );
                         })
+                      )}
+                      
+                      {addingCategoryId === projectTag.id ? (
+                        <div className="flex items-center p-2 pl-3">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                if (newCategoryName.trim()) {
+                                  usePlanStore.getState().addCategory(projectTag.id, newCategoryName.trim());
+                                }
+                                setAddingCategoryId(null);
+                                setNewCategoryName('');
+                              } else if (e.key === 'Escape') {
+                                setAddingCategoryId(null);
+                                setNewCategoryName('');
+                              }
+                            }}
+                            onBlur={() => {
+                              if (newCategoryName.trim()) {
+                                usePlanStore.getState().addCategory(projectTag.id, newCategoryName.trim());
+                              }
+                              setAddingCategoryId(null);
+                              setNewCategoryName('');
+                            }}
+                            placeholder="输入分类名称，按回车保存"
+                            className="w-full text-sm bg-transparent border-b border-[var(--brand)] px-1 py-1 outline-none text-[var(--ink-1)] placeholder:text-[var(--ink-4)]"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center gap-2 p-2 pl-3 rounded-md hover:bg-[var(--hover)] transition-colors cursor-pointer text-[var(--ink-3)] hover:text-[var(--brand)]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddingCategoryId(projectTag.id);
+                            setNewCategoryName('');
+                          }}
+                        >
+                          <Plus size={14} />
+                          <span className="text-sm">添加分类标签</span>
+                        </div>
                       )}
                     </div>
                   )}
