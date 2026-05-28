@@ -1,4 +1,4 @@
-import { Search, X, Plus, LogOut, User as UserIcon, BarChart2 } from 'lucide-react';
+import { Search, X, Plus, User as UserIcon, BarChart2 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { VIEWS } from '../../types';
@@ -84,9 +84,8 @@ export function Header() {
               )}
               <button
                 onClick={logout}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-lg transition-colors text-left"
+                className="flex items-center justify-center w-full px-3 py-2 text-sm text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-lg transition-colors"
               >
-                <LogOut size={16} />
                 <span>退出登录</span>
               </button>
             </div>
