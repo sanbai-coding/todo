@@ -1,4 +1,4 @@
-import { Plus, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
@@ -25,7 +25,7 @@ function DroppableDay({ dateStr, children }: { dateStr: string; children: React.
 
 export function TimelineView() {
   const { todos } = useTodoStore();
-  const { searchQuery, tagFilter, collapsedOverdue, toggleOverdue, openCreateModal, openListModal } = useUIStore();
+  const { searchQuery, tagFilter, openCreateModal, openListModal } = useUIStore();
   const filtered = filterTodos(todos, searchQuery, tagFilter);
   const { overdue, today, byDate } = groupByDate(filtered);
   const next7 = getNext7Days().slice(1);
