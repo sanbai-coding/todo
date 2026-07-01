@@ -6,6 +6,7 @@ import { arrayMove } from '@dnd-kit/sortable';
 import type { Project, Category, Plan, Tag, TagTone, TagLevel } from '../types';
 import { useAuthStore } from './authStore';
 import { cloudApi } from '../api';
+import { mergeById } from '../utils/mergeUtils';
 
 interface PlanState {
   projects: Project[];
@@ -64,14 +65,39 @@ export const usePlanStore = create<PlanState>()(
         const user = useAuthStore.getState().user;
         if (!user) return;
         const cloudData = await cloudApi.fetchPlans(user.id);
-        if (cloudData) {
-          set({
-            projects: cloudData.projects,
-            categories: cloudData.categories,
-            plans: cloudData.plans,
-            tags: cloudData.tags,
-          });
-        }
+        // null means the fetch failed - keep local data untouched rather than
+        // risk syncing a blank slate over whatever is actually in the cloud.
+        if (!cloudData) return;
+
+        const { projects: localProjects, categories: localCategories, plans: localPlans, tags: localTags } = get();
+        const mergedProjects = mergeById(cloudData.projects, localProjects);
+        const mergedCategories = mergeById(cloudData.categories, localCategories);
+        const mergedPlans = mergeById(cloudData.plans, localPlans);
+        const mergedTags = mergeById(cloudData.tags, localTags);
+
+        // categoryIds/planIds are denormalized from the children's own
+        // projectId/categoryId - rebuild them post-merge so a relation that
+        // only exists on one side (local or cloud) isn't dropped.
+        mergedProjects.forEach(project => {
+          project.categoryIds = mergedCategories
+            .filter(c => c.projectId === project.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map(c => c.id);
+        });
+        mergedCategories.forEach(category => {
+          category.planIds = mergedPlans
+            .filter(p => p.categoryId === category.id)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map(p => p.id);
+        });
+
+        set({
+          projects: mergedProjects,
+          categories: mergedCategories,
+          plans: mergedPlans,
+          tags: mergedTags,
+        });
+        await get().syncToCloud();
       },
 
       syncToCloud: async () => {

@@ -10,25 +10,25 @@ export interface CloudPlanData {
 }
 
 export const cloudApi = {
-  async fetchTodos(userId: string): Promise<{ todos: Todo[], tags: string[] }> {
+  // Returns null only when the fetch itself failed (network/server error) so
+  // callers can tell "cloud has no data yet" apart from "we don't know".
+  async fetchTodos(userId: string): Promise<{ todos: Todo[], tags: string[] } | null> {
     try {
       const res = await fetch(`${API_BASE}/api/todos/${userId}`);
       const json = await res.json();
-      if (json.success && json.data) {
-        // Handle migration: if data is an array (old format), return it as todos
-        if (Array.isArray(json.data)) {
-          return { todos: json.data, tags: [] };
-        }
-        // New format: { items, tags }
-        return { 
-          todos: json.data.items || [], 
-          tags: json.data.tags || [] 
-        };
+      if (!json.success) return null;
+      // Handle migration: if data is an array (old format), return it as todos
+      if (Array.isArray(json.data)) {
+        return { todos: json.data, tags: [] };
       }
-      return { todos: [], tags: [] };
+      // New format: { items, tags }
+      return {
+        todos: json.data?.items || [],
+        tags: json.data?.tags || []
+      };
     } catch (error) {
       console.error('Failed to fetch data from cloud', error);
-      return { todos: [], tags: [] };
+      return null;
     }
   },
 
@@ -55,19 +55,19 @@ export const cloudApi = {
     }
   },
 
+  // Returns null only when the fetch itself failed - a brand new user with
+  // no plans yet still resolves to an empty CloudPlanData, not null.
   async fetchPlans(userId: string): Promise<CloudPlanData | null> {
     try {
       const res = await fetch(`${API_BASE}/api/plans/${userId}`);
       const json = await res.json();
-      if (json.success && json.data) {
-        return {
-          projects: json.data.projects || [],
-          categories: json.data.categories || [],
-          plans: json.data.plans || [],
-          tags: json.data.tags || [],
-        };
-      }
-      return null;
+      if (!json.success) return null;
+      return {
+        projects: json.data?.projects || [],
+        categories: json.data?.categories || [],
+        plans: json.data?.plans || [],
+        tags: json.data?.tags || [],
+      };
     } catch (error) {
       console.error('Failed to fetch plans from cloud', error);
       return null;

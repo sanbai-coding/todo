@@ -65,15 +65,21 @@ function App() {
     }
   }, [isDarkMode]);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
+
   // Handle standalone stats view
   if (window.location.search.includes('view=stats')) {
     return <StatsView />;
   }
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
-  );
+  // All data lives in the cloud now - require login before showing the app
+  // so nothing is ever created in a state where it can't be synced.
+  if (!user) {
+    return <AuthModal forceOpen />;
+  }
 
   const activeTodo = activeDragItem?.type === 'todo' ? todos.find(t => t.id === activeDragItem.id) : null;
   const activeProject = activeDragItem?.type === 'project' ? usePlanStore.getState().projects.find(p => `project-${p.id}` === activeDragItem.id) : null;

@@ -8,19 +8,30 @@ import { usePlanStore } from '../../store/planStore';
 import { useUIStore } from '../../store/uiStore';
 import { cloudApi } from '../../api';
 
-export function AuthModal() {
+interface AuthModalProps {
+  // When true, the app requires login to proceed at all - the modal can't be
+  // dismissed by clicking outside it.
+  forceOpen?: boolean;
+}
+
+export function AuthModal({ forceOpen = false }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const login = useAuthStore(state => state.login);
   const fetchTodosFromCloud = useTodoStore(state => state.fetchFromCloud);
   const fetchPlansFromCloud = usePlanStore(state => state.fetchFromCloud);
   const { isAuthModalOpen, closeAuthModal } = useUIStore();
 
-  if (!isAuthModalOpen) return null;
+  if (!forceOpen && !isAuthModalOpen) return null;
+
+  const handleBackdropClick = () => {
+    if (forceOpen) return;
+    closeAuthModal();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +59,7 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6" onClick={closeAuthModal}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6" onClick={handleBackdropClick}>
       <div className="w-full max-w-[400px] flex flex-col items-center animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
         
         {/* Brand Header */}

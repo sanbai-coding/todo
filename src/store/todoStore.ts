@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { Todo, CreateTodoInput, TodoStatus, Quadrant } from '../types';
 import { getNextSortOrder } from '../utils/todoUtils';
+import { mergeById } from '../utils/mergeUtils';
 import { cloudApi } from '../api';
 import { useAuthStore } from './authStore';
 
@@ -47,12 +48,15 @@ export const useTodoStore = create<TodoState>()(
         const user = useAuthStore.getState().user;
         if (!user) return;
         const cloudData = await cloudApi.fetchTodos(user.id);
-        if (cloudData) {
-          set({ 
-            todos: cloudData.todos || [],
-            globalTags: cloudData.tags || []
-          });
-        }
+        // null means the fetch failed - keep local data untouched rather than
+        // risk syncing a blank slate over whatever is actually in the cloud.
+        if (!cloudData) return;
+        const { todos: localTodos, globalTags: localTags } = get();
+        set({
+          todos: mergeById(cloudData.todos, localTodos as Todo[]),
+          globalTags: Array.from(new Set([...(cloudData.tags || []), ...localTags])),
+        });
+        await get().syncToCloud();
       },
       syncToCloud: async () => {
         const user = useAuthStore.getState().user;
