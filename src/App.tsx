@@ -65,6 +65,30 @@ function App() {
     }
   }, [isDarkMode]);
 
+  // Cloud reads only ever happened at login - two open tabs/devices never
+  // saw each other's edits until someone logged out and back in. Poll
+  // periodically and re-pull whenever the tab regains focus so changes made
+  // elsewhere show up without requiring a manual re-login.
+  useEffect(() => {
+    if (!user) return;
+    const pullFromCloud = () => {
+      useTodoStore.getState().fetchFromCloud();
+      usePlanStore.getState().fetchFromCloud();
+    };
+    pullFromCloud();
+    const interval = setInterval(pullFromCloud, 20000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') pullFromCloud();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', pullFromCloud);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', pullFromCloud);
+    };
+  }, [user]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
