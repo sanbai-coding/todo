@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { Project, Category, Plan, Tag, TagTone, TagLevel } from '../types';
 import { useAuthStore } from './authStore';
+import { cloudApi } from '../api';
 
 interface PlanState {
   projects: Project[];
@@ -62,11 +63,22 @@ export const usePlanStore = create<PlanState>()(
       fetchFromCloud: async () => {
         const user = useAuthStore.getState().user;
         if (!user) return;
+        const cloudData = await cloudApi.fetchPlans(user.id);
+        if (cloudData) {
+          set({
+            projects: cloudData.projects,
+            categories: cloudData.categories,
+            plans: cloudData.plans,
+            tags: cloudData.tags,
+          });
+        }
       },
 
       syncToCloud: async () => {
         const user = useAuthStore.getState().user;
         if (!user) return;
+        const { projects, categories, plans, tags } = get();
+        await cloudApi.syncPlans(user.id, { projects, categories, plans, tags });
       },
 
       addProject: (name, tone) => {

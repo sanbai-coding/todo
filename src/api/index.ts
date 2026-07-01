@@ -1,6 +1,13 @@
-import type { Todo } from '../types';
+import type { Todo, Project, Category, Plan, Tag } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export interface CloudPlanData {
+  projects: Project[];
+  categories: Category[];
+  plans: Plan[];
+  tags: Tag[];
+}
 
 export const cloudApi = {
   async fetchTodos(userId: string): Promise<{ todos: Todo[], tags: string[] }> {
@@ -44,6 +51,40 @@ export const cloudApi = {
       return json.success;
     } catch (error) {
       console.error('Failed to sync data to cloud', error);
+      return false;
+    }
+  },
+
+  async fetchPlans(userId: string): Promise<CloudPlanData | null> {
+    try {
+      const res = await fetch(`${API_BASE}/api/plans/${userId}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        return {
+          projects: json.data.projects || [],
+          categories: json.data.categories || [],
+          plans: json.data.plans || [],
+          tags: json.data.tags || [],
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to fetch plans from cloud', error);
+      return null;
+    }
+  },
+
+  async syncPlans(userId: string, data: CloudPlanData): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_BASE}/api/plans/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      return json.success;
+    } catch (error) {
+      console.error('Failed to sync plans to cloud', error);
       return false;
     }
   },

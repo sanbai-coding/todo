@@ -4,6 +4,7 @@ import { Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 import { useTodoStore } from '../../store/todoStore';
+import { usePlanStore } from '../../store/planStore';
 import { useUIStore } from '../../store/uiStore';
 import { cloudApi } from '../../api';
 
@@ -15,7 +16,8 @@ export function AuthModal() {
   const [isLoading, setIsLoading] = useState(false);
   
   const login = useAuthStore(state => state.login);
-  const fetchFromCloud = useTodoStore(state => state.fetchFromCloud);
+  const fetchTodosFromCloud = useTodoStore(state => state.fetchFromCloud);
+  const fetchPlansFromCloud = usePlanStore(state => state.fetchFromCloud);
   const { isAuthModalOpen, closeAuthModal } = useUIStore();
 
   if (!isAuthModalOpen) return null;
@@ -34,8 +36,8 @@ export function AuthModal() {
         email,
         name: isLogin ? email.split('@')[0] : name,
       });
-      // After login, fetch the latest todos from our cloud!
-      await fetchFromCloud();
+      // After login, fetch the latest todos and plans from our cloud!
+      await Promise.all([fetchTodosFromCloud(), fetchPlansFromCloud()]);
       
       // Track login/register
       cloudApi.trackEvent(userId, isLogin ? 'login' : 'register');

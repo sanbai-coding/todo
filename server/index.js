@@ -59,6 +59,38 @@ app.post('/api/todos/:userId', async (req, res) => {
   }
 });
 
+// GET user's month plan data (projects/categories/plans/tags) from Redis
+app.get('/api/plans/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const data = await redis.get(`plans:${userId}`);
+
+    if (data) {
+      res.json({ success: true, data: JSON.parse(data) });
+    } else {
+      res.json({ success: true, data: null });
+    }
+  } catch (error) {
+    console.error('Error fetching plans:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// POST (Sync) user's month plan data to Redis
+app.post('/api/plans/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { projects, categories, plans, tags } = req.body;
+
+    await redis.set(`plans:${userId}`, JSON.stringify({ projects, categories, plans, tags }));
+
+    res.json({ success: true, message: 'Plans synced successfully' });
+  } catch (error) {
+    console.error('Error saving plans:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 // --- Analytics / Stats Endpoints ---
 
 const getTodayDateStr = () => {
