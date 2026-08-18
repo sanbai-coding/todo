@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Zap, Pencil, RotateCcw, FolderKanban } from 'lucide-react';
+import { Plus, Zap, Pencil, RotateCcw, Trash2, FolderKanban } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import { usePlanStore } from '../../../store/planStore';
@@ -10,6 +10,7 @@ import type { Plan, Project } from '../../../types';
 import { useActiveBoardProject } from './useActiveBoardProject';
 import { filterVisiblePlans } from '../../../utils/planUtils';
 import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
+import { ConfirmDialog } from '../../common/ConfirmDialog';
 
 /* ===== 单个规划事项卡片（视觉沿用状态看板的 .card） ===== */
 
@@ -19,12 +20,21 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, projectTone }: PlanCardProps) {
-  const { updatePlan, categories } = usePlanStore();
+  const { updatePlan, deletePlan, categories } = usePlanStore();
   const { todos, toggleComplete, addTodo, updateTodo } = useTodoStore();
   const { openCreateModal, openEditModal, showToast } = useUIStore();
   const todo = plan.todoId ? todos.find(t => t.id === plan.todoId) : null;
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(plan.title);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // 和删除项目/分类一致：只删规划事项，已经转出去的待办留在待办列表里，
+  // 顺手把待办上指向它的 planId 清掉，免得留一个悬空引用。
+  const handleDelete = () => {
+    if (todo) updateTodo(todo.id, { planId: undefined });
+    deletePlan(plan.id);
+    setShowDeleteConfirm(false);
+  };
 
   const categoryName = categories.find(c => c.id === plan.categoryId)?.name;
   const isDone = todo?.status === 'done';
@@ -77,6 +87,7 @@ function PlanCard({ plan, projectTone }: PlanCardProps) {
   };
 
   return (
+    <>
     <div
       className={clsx('card plan-card group', isDone && 'done')}
       style={{ '--proj-color': projectTone } as React.CSSProperties}
@@ -162,8 +173,27 @@ function PlanCard({ plan, projectTone }: PlanCardProps) {
             <RotateCcw size={12} />
           </button>
         )}
+        <button
+          className="del"
+          data-tooltip="删除规划事项"
+          onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+        >
+          <Trash2 size={12} />
+        </button>
       </div>
     </div>
+
+    <ConfirmDialog
+      isOpen={showDeleteConfirm}
+      title="删除规划事项"
+      message={todo
+        ? `确定要删除「${plan.title}」吗？它已转成的待办会保留在待办列表里。`
+        : `确定要删除「${plan.title}」吗？`}
+      confirmLabel="删除"
+      onConfirm={handleDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
+    </>
   );
 }
 

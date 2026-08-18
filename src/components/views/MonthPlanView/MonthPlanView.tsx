@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, Edit2, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, Edit2, RotateCcw, Trash2 } from 'lucide-react';
 import { SortableContext, useSortable, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { usePlanStore } from '../../../store/planStore';
@@ -8,6 +8,7 @@ import { useUIStore } from '../../../store/uiStore';
 import { TAG_TONES } from '../../../types';
 import { filterVisiblePlans } from '../../../utils/planUtils';
 import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
+import { ConfirmDialog } from '../../common/ConfirmDialog';
 import { clsx } from 'clsx';
 import { format, addMonths, subMonths } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -18,11 +19,20 @@ interface PlanItemProps {
 }
 
 function PlanItem({ plan, projectTone }: PlanItemProps) {
-  const { updatePlan, categories } = usePlanStore();
+  const { updatePlan, deletePlan, categories } = usePlanStore();
   const { todos, addTodo, toggleComplete, updateTodo } = useTodoStore();
   const todo = plan.todoId ? todos.find(t => t.id === plan.todoId) : null;
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(plan.title);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // 和删除项目/分类一致：只删规划事项，已经转出去的待办留在待办列表里，
+  // 顺手把待办上指向它的 planId 清掉，免得留一个悬空引用。
+  const handleDelete = () => {
+    if (todo) updateTodo(todo.id, { planId: undefined });
+    deletePlan(plan.id);
+    setShowDeleteConfirm(false);
+  };
 
   const getCategoryName = () => {
     const category = categories.find(c => c.id === plan.categoryId);
@@ -94,6 +104,7 @@ function PlanItem({ plan, projectTone }: PlanItemProps) {
   };
 
   return (
+    <>
     <div
       className={clsx('plan', hasTodo && 'has-todo', stateClass)}
       style={{ '--proj-color': projectTone } as React.CSSProperties}
@@ -171,8 +182,31 @@ function PlanItem({ plan, projectTone }: PlanItemProps) {
             <RotateCcw size={13} />
           </button>
         )}
+        <button
+          className="del"
+          data-tooltip="删除规划事项"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowDeleteConfirm(true);
+          }}
+        >
+          <Trash2 size={13} />
+        </button>
       </span>
     </div>
+
+    <ConfirmDialog
+      isOpen={showDeleteConfirm}
+      title="删除规划事项"
+      message={todo
+        ? `确定要删除「${plan.title}」吗？它已转成的待办会保留在待办列表里。`
+        : `确定要删除「${plan.title}」吗？`}
+      confirmLabel="删除"
+      onConfirm={handleDelete}
+      onCancel={() => setShowDeleteConfirm(false)}
+    />
+    </>
   );
 }
 

@@ -1314,3 +1314,7 @@ input, textarea { font-family: inherit; }
   background:var(--brand); border-color:var(--brand); color:var(--brand-ink);
 }
 .show-done-toggle.on{color:var(--ink-1); border-color:var(--line-strong)}
+
+/* 删除规划事项 —— 两个看板的悬浮操作里都常驻 */
+.plan-actions button.del:hover,
+.plan-card-actions button.del:hover{ color:var(--danger); background:var(--danger-soft) }
