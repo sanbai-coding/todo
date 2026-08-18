@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore';
 import { VIEWS } from '../../types';
 import { useEffect, useRef } from 'react';
 import { TagFilter } from '../common/TagFilter';
+import { ProjectFilter } from '../views/ProjectBoardView';
 import { DateFilter } from '../common/DateFilter';
 
 export function Header() {
@@ -36,7 +37,7 @@ export function Header() {
     <div className="topbar">
       <div className="crumb flex items-center gap-3 relative z-50">
         <h1>{viewConfig?.label}</h1>
-        {currentView !== 'monthPlan' && <TagFilter />}
+        {currentView === 'projectBoard' ? <ProjectFilter /> : currentView !== 'monthPlan' && <TagFilter />}
         <DateFilter />
       </div>
 

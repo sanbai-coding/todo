@@ -16,6 +16,7 @@ import { StatusView } from './components/views/StatusView/StatusView';
 import { CalendarView } from './components/views/CalendarView/CalendarView';
 import { QuadrantView } from './components/views/QuadrantView/QuadrantView';
 import { MonthPlanView, NewTagModal } from './components/views/MonthPlanView';
+import { ProjectBoardView, NewProjectModal } from './components/views/ProjectBoardView';
 import { StatsView } from './components/views/StatsView';
 import { AuthModal } from './components/auth/AuthModal';
 import { useTodoStore } from './store/todoStore';
@@ -194,6 +195,7 @@ function App() {
     calendar: <CalendarView />,
     quadrant: <QuadrantView />,
     monthPlan: <MonthPlanView />,
+    projectBoard: <ProjectBoardView />,
   };
 
   return (
@@ -233,6 +235,7 @@ function App() {
       <TodoListModal />
       <TagModal />
       <NewTagModal />
+      <NewProjectModal />
       <AuthModal />
       
       {/* Global Toast */}

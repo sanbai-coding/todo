@@ -23,6 +23,7 @@ interface PlanState {
   reorderProjects: (activeId: string, overId: string) => void;
 
   copyProject: (id: string) => void;
+
   addCategory: (projectId: string, name: string) => void;
   updateCategory: (id: string, data: Partial<Omit<Category, 'id' | 'createdAt'>>) => void;
   deleteCategory: (id: string) => void;
@@ -36,7 +37,7 @@ interface PlanState {
   linkTodoToPlan: (planId: string, todoId: string) => void;
   unlinkTodoFromPlan: (planId: string) => void;
 
-  addTag: (name: string, level: TagLevel, tone: TagTone, parentId?: string) => void;
+  addTag: (name: string, level: TagLevel, tone: TagTone, parentId?: string) => string;
   updateTag: (id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>) => void;
   deleteTag: (id: string) => void;
 
@@ -138,6 +139,7 @@ export const usePlanStore = create<PlanState>()(
           const project = state.projects.find(p => p.id === id);
           if (!project) return;
           Object.assign(project, data);
+          project.updatedAt = new Date().toISOString();
           
           const tag = state.tags.find(t => t.id === id);
           if (tag && data.name) {
@@ -207,6 +209,7 @@ export const usePlanStore = create<PlanState>()(
             name: `${project.name} (副本)`,
             categoryIds: [],
             createdAt: now,
+            updatedAt: now,
           };
           
           const newTag: Tag = {
@@ -453,10 +456,11 @@ export const usePlanStore = create<PlanState>()(
       },
 
       addTag: (name, level, tone, parentId) => {
+        const newId = nanoid();
         set((state) => {
           const now = new Date().toISOString();
           const tag: Tag = {
-            id: nanoid(),
+            id: newId,
             name,
             level,
             tone,
@@ -494,6 +498,7 @@ export const usePlanStore = create<PlanState>()(
           }
         });
         triggerSync();
+        return newId;
       },
 
       updateTag: (id, data) => {

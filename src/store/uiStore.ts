@@ -12,6 +12,9 @@ interface UIState {
   isAuthModalOpen: boolean;
   isTagModalOpen: boolean;
   isNewTagModalOpen: boolean;
+  isNewBoardModalOpen: boolean;
+  /** 「项目规划」当前聚焦的项目，一次只展示一个面板 */
+  boardProjectId: string | null;
   editingTodoId: string | null;
   defaultDueDate: string | undefined;
   defaultStatus: TodoStatus | undefined;
@@ -41,6 +44,9 @@ interface UIState {
   closeTagModal: () => void;
   openNewTagModal: () => void;
   closeNewTagModal: () => void;
+  openNewBoardModal: () => void;
+  closeNewBoardModal: () => void;
+  setBoardProject: (projectId: string | null) => void;
 
   openListModal: (filter: ListModalFilter) => void;
   closeListModal: () => void;
@@ -64,6 +70,8 @@ export const useUIStore = create<UIState>()((set) => ({
   isAuthModalOpen: false,
   isTagModalOpen: false,
   isNewTagModalOpen: false,
+  isNewBoardModalOpen: false,
+  boardProjectId: null,
   editingTodoId: null,
   defaultDueDate: undefined,
   defaultStatus: undefined,
@@ -139,6 +147,9 @@ export const useUIStore = create<UIState>()((set) => ({
   closeTagModal: () => set({ isTagModalOpen: false }),
   openNewTagModal: () => set({ isNewTagModalOpen: true }),
   closeNewTagModal: () => set({ isNewTagModalOpen: false }),
+  openNewBoardModal: () => set({ isNewBoardModalOpen: true }),
+  closeNewBoardModal: () => set({ isNewBoardModalOpen: false }),
+  setBoardProject: (projectId) => set({ boardProjectId: projectId }),
 
   openListModal: (filter) => set({ listModalFilter: filter }),
   closeListModal: () => set({ listModalFilter: null }),

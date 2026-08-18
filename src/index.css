@@ -1161,3 +1161,143 @@ input, textarea { font-family: inherit; }
 .proj-add:hover{border-color:var(--line-strong); color:var(--ink-2)}
 .proj-add svg{width:18px; height:18px; stroke-width:1.8}
 
+
+/* === Project Board View ================================== */
+/* 视觉沿用状态看板：.kanban / .col / .col-head / .col-body / .card */
+/* 一次只展示一个项目面板，面板占满内容区 */
+
+.pb-view{
+  flex:1; min-width:0; min-height:0;
+  display:flex; flex-direction:column;
+  background:var(--bg);
+  padding:20px 24px 24px;
+}
+
+/* ===== 项目面板 ===== */
+.pb-board{
+  flex:1; min-height:0;
+  display:flex; flex-direction:column;
+  background:var(--surface);
+  border:1px solid var(--line-soft);
+  border-radius:var(--r-lg);
+  box-shadow:0 2px 8px rgba(34,30,24,.02);
+  overflow:hidden;
+  position:relative;
+}
+.pb-board::before{
+  content:""; position:absolute; top:0; left:0; right:0;
+  height:3px; background:var(--proj-color, var(--ink-3));
+}
+
+.pb-board-head{
+  display:flex; align-items:center; gap:10px;
+  padding:14px 16px 12px;
+  border-bottom:1px solid var(--line-soft);
+  flex-shrink:0;
+}
+.pb-dot{
+  width:8px; height:8px; border-radius:999px;
+  background:var(--proj-color, var(--ink-3)); flex-shrink:0;
+}
+.pb-name{font-size:15px; font-weight:600; color:var(--ink-1); letter-spacing:-.01em}
+.pb-cnt{font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+.pb-progress{margin-left:auto; display:inline-flex; align-items:center; gap:8px}
+.pb-bar{
+  width:120px; height:4px; border-radius:999px;
+  background:var(--surface-2); overflow:hidden;
+}
+.pb-bar i{display:block; height:100%; background:var(--proj-color, var(--brand)); border-radius:999px; transition:width .2s}
+.pb-pct{
+  font-family:var(--font-num); font-size:11.5px; color:var(--ink-3);
+  font-variant-numeric:tabular-nums; min-width:30px;
+}
+.pb-stats{display:inline-flex; align-items:center; gap:14px; font-size:11.5px; color:var(--ink-3)}
+.pb-stats b{
+  font-family:var(--font-num); font-size:14px; font-weight:600;
+  font-variant-numeric:tabular-nums; margin-right:3px;
+}
+.pb-new{flex-shrink:0}
+
+/* ===== 分类列（一个分类一列，横向滚动） ===== */
+.kanban.kanban-flow{
+  flex:1; min-height:0;
+  display:flex; gap:16px; height:auto;
+  padding:14px 16px 16px;
+  overflow-x:auto; align-items:stretch;
+}
+.kanban.kanban-flow::-webkit-scrollbar{height:6px}
+.kanban.kanban-flow::-webkit-scrollbar-thumb{background:var(--line); border-radius:999px}
+
+.plan-col{
+  width:340px; flex-shrink:0;
+  background:var(--surface-2);
+}
+
+.plan-col-add{
+  width:340px; flex-shrink:0; align-self:stretch;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  padding:24px 20px;
+  border:1px dashed var(--line); border-radius:var(--r-lg);
+  color:var(--ink-4); background:transparent;
+}
+.plan-col-add:hover{border-color:var(--line-strong); color:var(--ink-2); background:var(--hover)}
+.plan-col-add svg{width:16px; height:16px; stroke-width:1.8}
+.plan-col-add .t{font-size:12.5px; font-weight:500}
+.plan-col-add .d{font-size:11.5px; color:var(--ink-4); text-align:center; line-height:1.5}
+
+.col-adding{border-color:var(--brand)}
+.col-adding .col-head .ind{background:var(--proj-color, var(--brand))}
+.col-add-field{
+  flex:1; min-width:0;
+  font-size:13px; font-weight:600; color:var(--ink-1);
+  background:transparent; border:none; outline:none;
+}
+.col-add-field::placeholder{color:var(--ink-4); font-weight:400}
+
+/* ===== 规划事项卡片 ===== */
+.plan-card{cursor:pointer}
+.plan-card .ttl{align-items:center}
+.plan-card .name{flex:1; min-width:0; line-height:1.4}
+.plan-card-dot{
+  width:16px; height:16px; flex-shrink:0;
+  display:grid; place-items:center;
+}
+.plan-card-dot::before{
+  content:""; width:5px; height:5px; border-radius:999px;
+  background:var(--proj-color, var(--ink-4)); opacity:.7;
+}
+.plan-card .meta{padding-left:26px}
+.plan-card.done{opacity:.72}
+
+.plan-card-actions{
+  position:absolute; right:8px; top:8px;
+  display:flex; gap:1px;
+  opacity:0; transition:opacity .12s;
+  background:var(--surface); border-radius:var(--r-sm);
+  box-shadow:0 1px 3px rgba(34,30,24,.08);
+  padding:1px;
+}
+.plan-card:hover .plan-card-actions{opacity:1}
+.plan-card-actions button{
+  width:22px; height:22px; border-radius:4px;
+  display:grid; place-items:center; color:var(--ink-3);
+}
+.plan-card-actions button:hover{background:var(--hover); color:var(--ink-1)}
+.plan-card-actions button:first-child:hover{color:var(--brand); background:var(--brand-soft)}
+.plan-card-actions button svg{width:12px; height:12px; stroke-width:1.8}
+
+.plan-state.s-plan{color:var(--ink-4); background:var(--surface-2)}
+
+/* ===== 空态（一个项目都没有时） ===== */
+.pb-placeholder{
+  flex:1;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  padding:32px;
+  border:1px dashed var(--line); border-radius:var(--r-lg);
+  color:var(--ink-4);
+}
+.pb-placeholder:hover{border-color:var(--line-strong); color:var(--ink-2)}
+.pb-placeholder svg{width:22px; height:22px; stroke-width:1.6; margin-bottom:4px}
+.pb-placeholder .t{font-size:13.5px; font-weight:600; color:var(--ink-2)}
+.pb-placeholder .d{font-size:12px}

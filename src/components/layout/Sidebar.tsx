@@ -1,4 +1,4 @@
-import { CalendarDays, Kanban, Calendar, LayoutGrid, Plus, Tag as TagIcon, Target } from 'lucide-react';
+import { CalendarDays, Kanban, Calendar, LayoutGrid, Plus, Tag as TagIcon, Target, FolderKanban } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { ViewType } from '../../types';
 import { VIEWS } from '../../types';
@@ -12,6 +12,7 @@ const VIEW_ICONS: Record<ViewType, React.ElementType> = {
   calendar: Calendar,
   quadrant: LayoutGrid,
   monthPlan: Target,
+  projectBoard: FolderKanban,
 };
 
 export function Sidebar() {
@@ -64,6 +65,18 @@ export function Sidebar() {
           <span>月度规划</span>
         </button>
         <button 
+          onClick={() => setView('projectBoard')} 
+          className={clsx(
+            "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl transition-colors",
+            currentView === 'projectBoard' 
+              ? "bg-[var(--ink-1)] text-[var(--bg)]" 
+              : "text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink-1)]"
+          )}
+        >
+          <FolderKanban size={16} />
+          <span>项目规划</span>
+        </button>
+        <button 
           onClick={openTagModal} 
           className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink-1)] rounded-xl transition-colors"
         >
@@ -74,7 +87,7 @@ export function Sidebar() {
 
       <div className="side-nav-label">视图</div>
       <nav className="side-nav">
-        {VIEWS.filter(v => v.type !== 'monthPlan').map(view => {
+        {VIEWS.filter(v => v.type !== 'monthPlan' && v.type !== 'projectBoard').map(view => {
           const Icon = VIEW_ICONS[view.type];
           const isActive = currentView === view.type;
           return (

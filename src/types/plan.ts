@@ -39,6 +39,7 @@ export interface Project {
   isOpen: boolean;
   sortOrder: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export const TAG_TONES: Record<TagTone, string> = {

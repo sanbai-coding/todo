@@ -1,5 +1,24 @@
 import type { Todo, TodoStatus, Quadrant, Priority } from '../types';
 import { isOverdue, isTodayStr, TODAY } from './dateUtils';
+import { usePlanStore } from '../store/planStore';
+
+/**
+ * 标签筛选器给的是标签 id，而待办的 todo.tags 里存的是标签「名称」，
+ * 直接拿 id 去 includes 永远匹配不到，筛选结果会全空。这里先把 id 换回名称。
+ * 选中项目（L1）时，它下面所有分类（L2）的待办也算命中 —— 从月度规划/项目规划
+ * 转过去的待办只带分类名，不带项目名。
+ */
+export function resolveTagFilterNames(tagFilter: string): string[] {
+  const tags = usePlanStore.getState().tags;
+  const target = tags.find(t => t.id === tagFilter);
+  // 找不到就当它本来就是个名称（老数据里存的是名称）
+  if (!target) return [tagFilter];
+  if (target.level === 'L1') {
+    const childNames = tags.filter(t => t.parentId === target.id).map(t => t.name);
+    return [target.name, ...childNames];
+  }
+  return [target.name];
+}
 
 export function groupByStatus(todos: Todo[]): Record<TodoStatus, Todo[]> {
   const groups: Record<TodoStatus, Todo[]> = {
@@ -89,7 +108,8 @@ export function filterTodos(
     result = result.filter(t => !t.dueDate || isTodayStr(t.dueDate));
   }
   if (tagFilter) {
-    result = result.filter(t => t.tags.includes(tagFilter));
+    const names = resolveTagFilterNames(tagFilter);
+    result = result.filter(t => t.tags.some(tag => names.includes(tag)));
   }
   if (!searchText.trim()) return result;
   const q = searchText.toLowerCase();
