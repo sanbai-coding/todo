@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, Plus, Zap, Edit2, RotateCcw, Trash2 } from 'lucide-react';
 import { SortableContext, useSortable, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { usePlanStore } from '../../../store/planStore';
 import { useTodoStore } from '../../../store/todoStore';
@@ -10,6 +11,7 @@ import { filterVisiblePlans } from '../../../utils/planUtils';
 import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
 import { ConfirmDialog } from '../../common/ConfirmDialog';
 import { AutoGrowTextarea } from '../../common/AutoGrowTextarea';
+import { dragId } from '../../../utils/dndUtils';
 import { clsx } from 'clsx';
 import { format, addMonths, subMonths } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -26,6 +28,11 @@ function PlanItem({ plan, projectTone }: PlanItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(plan.title);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: dragId.plan(plan.id), disabled: isEditing });
 
   // 和删除项目/分类一致：只删规划事项，已经转出去的待办留在待办列表里，
   // 顺手把待办上指向它的 planId 清掉，免得留一个悬空引用。
@@ -107,8 +114,15 @@ function PlanItem({ plan, projectTone }: PlanItemProps) {
   return (
     <>
     <div
-      className={clsx('plan', hasTodo && 'has-todo', stateClass)}
-      style={{ '--proj-color': projectTone } as React.CSSProperties}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={clsx('plan', hasTodo && 'has-todo', stateClass, isDragging && 'is-dragging')}
+      style={{
+        '--proj-color': projectTone,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      } as React.CSSProperties}
       onClick={(e) => {
         if (!isEditing && !e.defaultPrevented) {
           e.preventDefault();
@@ -214,10 +228,12 @@ function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
   const showCompletedPlans = useUIStore(state => state.showCompletedPlans);
   const category = categories.find(c => c.id === categoryId);
   const categoryPlans = filterVisiblePlans(
-    plans.filter(p => p.categoryId === categoryId),
+    plans.filter(p => p.categoryId === categoryId).sort((a, b) => a.sortOrder - b.sortOrder),
     todos,
     showCompletedPlans
   );
+  // 分类折叠起来或者一条计划都没有时，也要能作为落点接住拖过来的计划
+  const { setNodeRef: setDropRef } = useDroppable({ id: dragId.planColumn(categoryId) });
   const [isAdding, setIsAdding] = useState(false);
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -226,7 +242,7 @@ function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging,
-  } = useSortable({ id: `category-${category?.projectId}-${categoryId}` });
+  } = useSortable({ id: dragId.category(category?.projectId ?? '', categoryId) });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -325,10 +341,15 @@ function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
         </button>
       </div>
       {category.isOpen && (
-        <div className="plan-list">
-          {categoryPlans.map(plan => (
-            <PlanItem key={plan.id} plan={plan} projectTone={projectTone} />
-          ))}
+        <div className="plan-list" ref={setDropRef}>
+          <SortableContext
+            items={categoryPlans.map(p => dragId.plan(p.id))}
+            strategy={verticalListSortingStrategy}
+          >
+            {categoryPlans.map(plan => (
+              <PlanItem key={plan.id} plan={plan} projectTone={projectTone} />
+            ))}
+          </SortableContext>
           {isAdding ? (
             <div className="plan-add-input">
               <input
@@ -381,7 +402,7 @@ function ProjectColumn({ projectId }: ProjectColumnProps) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging,
-  } = useSortable({ id: `project-${projectId}` });
+  } = useSortable({ id: dragId.project(projectId) });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -469,7 +490,7 @@ function ProjectColumn({ projectId }: ProjectColumnProps) {
         </div>
       </header>
       <div className="proj-body">
-        <SortableContext items={project.categoryIds.map(id => `category-${project.id}-${id}`)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={project.categoryIds.map(id => dragId.category(project.id, id))} strategy={verticalListSortingStrategy}>
           {projectCategories.map(cat => (
             <CategorySection key={cat.id} categoryId={cat.id} projectTone={projectTone} />
           ))}
@@ -584,7 +605,7 @@ export function MonthPlanView() {
       </div>
 
       <div className="month-board">
-        <SortableContext items={projects.map(p => `project-${p.id}`)} strategy={horizontalListSortingStrategy}>
+        <SortableContext items={projects.map(p => dragId.project(p.id))} strategy={horizontalListSortingStrategy}>
           {projects.map(project => (
             <ProjectColumn key={project.id} projectId={project.id} />
           ))}

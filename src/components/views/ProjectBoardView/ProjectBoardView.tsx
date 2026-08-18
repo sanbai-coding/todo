@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Plus, Zap, Pencil, RotateCcw, Trash2, FolderKanban } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
+import { SortableContext, useSortable, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import { dragId } from '../../../utils/dndUtils';
 import { usePlanStore } from '../../../store/planStore';
 import { useTodoStore } from '../../../store/todoStore';
 import { useUIStore } from '../../../store/uiStore';
@@ -28,6 +32,11 @@ function PlanCard({ plan, projectTone }: PlanCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(plan.title);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: dragId.plan(plan.id), disabled: isEditing });
 
   // 和删除项目/分类一致：只删规划事项，已经转出去的待办留在待办列表里，
   // 顺手把待办上指向它的 planId 清掉，免得留一个悬空引用。
@@ -90,8 +99,15 @@ function PlanCard({ plan, projectTone }: PlanCardProps) {
   return (
     <>
     <div
-      className={clsx('card plan-card group', isDone && 'done')}
-      style={{ '--proj-color': projectTone } as React.CSSProperties}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={clsx('card plan-card group', isDone && 'done', isDragging && 'is-dragging')}
+      style={{
+        '--proj-color': projectTone,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      } as React.CSSProperties}
       onClick={() => {
         if (todo) {
           openEditModal(todo.id);
@@ -208,6 +224,13 @@ function PlanColumn({ categoryId, projectTone }: PlanColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
 
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: dragId.category(category?.projectId ?? '', categoryId) });
+  // 空列也要能接住拖过来的卡片
+  const { setNodeRef: setDropRef } = useDroppable({ id: dragId.planColumn(categoryId) });
+
   if (!category) return null;
 
   const columnPlans = filterVisiblePlans(
@@ -223,20 +246,38 @@ function PlanColumn({ categoryId, projectTone }: PlanColumnProps) {
   };
 
   return (
-    <div className="col plan-col" style={{ '--proj-color': projectTone } as React.CSSProperties}>
-      <header className="col-head">
+    <div
+      ref={setNodeRef}
+      className={clsx('col plan-col', isDragging && 'is-dragging')}
+      style={{
+        '--proj-color': projectTone,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      } as React.CSSProperties}
+    >
+      <header className="col-head col-drag" {...attributes} {...listeners}>
         <span className="ind" style={{ background: projectTone }} />
         <span className="lab">{category.name}</span>
         <span className="cnt">{columnPlans.length}</span>
-        <button className="add" onClick={() => setIsAdding(true)} aria-label="添加规划事项">
+        <button
+          className="add"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setIsAdding(true)}
+          aria-label="添加规划事项"
+        >
           <Plus size={14} />
         </button>
       </header>
 
-      <div className="col-body">
-        {columnPlans.map(plan => (
-          <PlanCard key={plan.id} plan={plan} projectTone={projectTone} />
-        ))}
+      <div className="col-body" ref={setDropRef}>
+        <SortableContext
+          items={columnPlans.map(p => dragId.plan(p.id))}
+          strategy={verticalListSortingStrategy}
+        >
+          {columnPlans.map(plan => (
+            <PlanCard key={plan.id} plan={plan} projectTone={projectTone} />
+          ))}
+        </SortableContext>
 
         {isAdding ? (
           <div className="plan-add-input">
@@ -364,9 +405,14 @@ function ProjectBoard({ project }: ProjectBoardProps) {
       </header>
 
       <div className="kanban kanban-flow">
-        {projectCategories.map(cat => (
-          <PlanColumn key={cat.id} categoryId={cat.id} projectTone={projectTone} />
-        ))}
+        <SortableContext
+          items={projectCategories.map(cat => dragId.category(project.id, cat.id))}
+          strategy={horizontalListSortingStrategy}
+        >
+          {projectCategories.map(cat => (
+            <PlanColumn key={cat.id} categoryId={cat.id} projectTone={projectTone} />
+          ))}
+        </SortableContext>
         <AddColumn projectId={project.id} isFirst={projectCategories.length === 0} />
       </div>
     </section>

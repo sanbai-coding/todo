@@ -34,6 +34,7 @@ interface PlanState {
   copyPlan: (planId: string) => void;
   updatePlan: (id: string, data: Partial<Omit<Plan, 'id' | 'createdAt'>>) => void;
   deletePlan: (id: string) => void;
+  movePlan: (planId: string, targetCategoryId: string, overPlanId?: string) => void;
   linkTodoToPlan: (planId: string, todoId: string) => void;
   unlinkTodoFromPlan: (planId: string) => void;
 
@@ -429,6 +430,41 @@ export const usePlanStore = create<PlanState>()(
           }
           
           state.plans = state.plans.filter(p => p.id !== id);
+        });
+        triggerSync();
+      },
+
+      // 拖拽落位：同列内换序，或者整条挪到别的分类下。
+      // overPlanId 是落点位置上那条计划，没有就落到末尾。
+      movePlan: (planId, targetCategoryId, overPlanId) => {
+        set((state) => {
+          const plan = state.plans.find(p => p.id === planId);
+          const target = state.categories.find(c => c.id === targetCategoryId);
+          if (!plan || !target || planId === overPlanId) return;
+
+          const source = state.categories.find(c => c.id === plan.categoryId);
+          if (source) {
+            source.planIds = source.planIds.filter(id => id !== planId);
+          }
+          // 同列内拖动时，上面那步没摘掉，这里再去一次重
+          target.planIds = target.planIds.filter(id => id !== planId);
+
+          const overIndex = overPlanId ? target.planIds.indexOf(overPlanId) : -1;
+          if (overIndex === -1) {
+            target.planIds.push(planId);
+          } else {
+            target.planIds.splice(overIndex, 0, planId);
+          }
+
+          plan.categoryId = target.id;
+          plan.projectId = target.projectId;
+          plan.updatedAt = new Date().toISOString();
+
+          // 列表按 sortOrder 渲染，落位后整列重新编号
+          target.planIds.forEach((id, i) => {
+            const p = state.plans.find(x => x.id === id);
+            if (p) p.sortOrder = (i + 1) * 1000;
+          });
         });
         triggerSync();
       },

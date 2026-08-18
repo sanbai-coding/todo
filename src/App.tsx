@@ -26,11 +26,12 @@ import { usePlanStore } from './store/planStore';
 import { generateAIPMData } from './utils/mockDataGenerator';
 import { cloudApi } from './api';
 import type { TodoStatus, Quadrant } from './types';
+import { dragId, parseDragId } from './utils/dndUtils';
 
 function App() {
-  const [activeDragItem, setActiveDragItem] = useState<{ id: string, type: 'todo' | 'project' | 'category' } | null>(null);
+  const [activeDragItem, setActiveDragItem] = useState<{ id: string, type: 'todo' | 'project' | 'category' | 'plan' } | null>(null);
   const { todos, reorderTodos, moveTodoToStatus, moveTodoToQuadrant, moveTodoToDate } = useTodoStore();
-  const { reorderProjects, reorderCategories } = usePlanStore();
+  const { reorderProjects, reorderCategories, movePlan } = usePlanStore();
   const { currentView, isDarkMode, toastMessage, isTagModalOpen } = useUIStore();
   const user = useAuthStore(state => state.user);
 
@@ -107,8 +108,9 @@ function App() {
   }
 
   const activeTodo = activeDragItem?.type === 'todo' ? todos.find(t => t.id === activeDragItem.id) : null;
-  const activeProject = activeDragItem?.type === 'project' ? usePlanStore.getState().projects.find(p => `project-${p.id}` === activeDragItem.id) : null;
-  const activeCategory = activeDragItem?.type === 'category' ? usePlanStore.getState().categories.find(c => `category-${c.projectId}-${c.id}` === activeDragItem.id) : null;
+  const activeProject = activeDragItem?.type === 'project' ? usePlanStore.getState().projects.find(p => dragId.project(p.id) === activeDragItem.id) : null;
+  const activeCategory = activeDragItem?.type === 'category' ? usePlanStore.getState().categories.find(c => dragId.category(c.projectId, c.id) === activeDragItem.id) : null;
+  const activePlan = activeDragItem?.type === 'plan' ? usePlanStore.getState().plans.find(p => dragId.plan(p.id) === activeDragItem.id) : null;
 
   const customCollisionDetection = (args: any) => {
     const pointerCollisions = pointerWithin(args);
@@ -120,13 +122,31 @@ function App() {
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     const id = active.id as string;
-    if (id.startsWith('project-')) {
+    const parsed = parseDragId(id);
+    if (parsed?.kind === 'project') {
       setActiveDragItem({ id, type: 'project' });
-    } else if (id.startsWith('category-')) {
+    } else if (parsed?.kind === 'category') {
       setActiveDragItem({ id, type: 'category' });
+    } else if (parsed?.kind === 'plan') {
+      setActiveDragItem({ id, type: 'plan' });
     } else {
       setActiveDragItem({ id, type: 'todo' });
     }
+  };
+
+  // 规划事项换列时，它转出去的待办身上带的还是旧分类名，顺手换成新分类名，
+  // 否则按标签筛选会把它归到原来的分类里。
+  const syncPlanTodoTag = (planId: string, targetCategoryId: string) => {
+    const { plans, categories } = usePlanStore.getState();
+    const plan = plans.find(p => p.id === planId);
+    if (!plan?.todoId || plan.categoryId === targetCategoryId) return;
+    const from = categories.find(c => c.id === plan.categoryId);
+    const to = categories.find(c => c.id === targetCategoryId);
+    if (!from || !to) return;
+    const todo = useTodoStore.getState().todos.find(t => t.id === plan.todoId);
+    if (!todo || !todo.tags.includes(from.name)) return;
+    const tags = Array.from(new Set(todo.tags.map(t => (t === from.name ? to.name : t))));
+    useTodoStore.getState().updateTodo(todo.id, { tags });
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -135,22 +155,42 @@ function App() {
 
     const overId = over.id as string;
     const activeId = active.id as string;
+    const activeParsed = parseDragId(activeId);
+    const overParsed = parseDragId(overId);
 
-    if (activeId.startsWith('project-') && overId.startsWith('project-')) {
-      reorderProjects(activeId.replace('project-', ''), overId.replace('project-', ''));
-      return;
-    }
-
-    if (activeId.startsWith('category-') && overId.startsWith('category-')) {
-      const [, activeProjId, activeCatId] = activeId.split('-');
-      const [, overProjId, overCatId] = overId.split('-');
-      if (activeProjId === overProjId) {
-        reorderCategories(activeProjId, activeCatId, overCatId);
+    if (activeParsed?.kind === 'project') {
+      if (overParsed?.kind === 'project') {
+        reorderProjects(activeParsed.parts[0], overParsed.parts[0]);
       }
       return;
     }
 
-    if (activeId.startsWith('project-') || activeId.startsWith('category-')) {
+    if (activeParsed?.kind === 'category') {
+      const [activeProjId, activeCatId] = activeParsed.parts;
+      if (overParsed?.kind === 'category') {
+        const [overProjId, overCatId] = overParsed.parts;
+        if (activeProjId === overProjId) {
+          reorderCategories(activeProjId, activeCatId, overCatId);
+        }
+      }
+      return;
+    }
+
+    // 规划事项：落在另一条事项上就插到它前面，落在列上就追加到列尾
+    if (activeParsed?.kind === 'plan') {
+      const planId = activeParsed.parts[0];
+      if (overParsed?.kind === 'plan') {
+        const overPlanId = overParsed.parts[0];
+        const targetCategoryId = usePlanStore.getState().plans.find(p => p.id === overPlanId)?.categoryId;
+        if (targetCategoryId) {
+          syncPlanTodoTag(planId, targetCategoryId);
+          movePlan(planId, targetCategoryId, overPlanId);
+        }
+      } else if (overParsed?.kind === 'planColumn') {
+        const targetCategoryId = overParsed.parts[0];
+        syncPlanTodoTag(planId, targetCategoryId);
+        movePlan(planId, targetCategoryId);
+      }
       return;
     }
 
@@ -228,6 +268,9 @@ function App() {
               <span className="cname font-medium">{activeCategory.name}</span>
             </div>
           </div>
+        )}
+        {activePlan && (
+          <div className="drag-plan-ghost">{activePlan.title}</div>
         )}
       </DragOverlay>
 

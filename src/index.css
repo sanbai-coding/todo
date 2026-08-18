@@ -1353,3 +1353,27 @@ input, textarea { font-family: inherit; }
   padding: 0;
   display: block;
 }
+
+/* ===== 规划事项 / 分类列 的拖拽 ===== */
+.plan{ cursor: grab; }
+.plan.is-dragging,
+.plan-card.is-dragging,
+.plan-col.is-dragging{ opacity: .4; }
+.plan-card{ cursor: grab; }
+/* 列头是分类列的拖拽把手 */
+.col-head.col-drag{ cursor: grab; user-select: none; }
+.col-head.col-drag:active{ cursor: grabbing; }
+/* 空列也要留出可以落卡片的高度 */
+.plan-col .col-body{ min-height: 60px; }
+.cat .plan-list{ min-height: 8px; }
+
+.drag-plan-ghost{
+  max-width: 300px;
+  padding: 8px 12px;
+  font-size: 13px; line-height: 1.4;
+  background: var(--surface); color: var(--ink-1);
+  border: 1px solid var(--brand);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 20px rgba(31,27,20,.16);
+  opacity: .95;
+}
