@@ -1092,7 +1092,11 @@ input, textarea { font-family: inherit; }
   padding: 4px 8px;
   border-radius: 4px;
   white-space: pre-wrap;
-  max-width: 200px;
+  /* 绝对定位 + left:50% 时，收缩宽度是按「可用空间」算的（按钮才 22px 宽），
+     max-width 根本轮不上，文案会一个字一行竖着排。用 max-content 让它按内容
+     本身的宽度横向铺开，再由 max-width 给长备注兜底换行。 */
+  width: max-content;
+  max-width: 220px;
   text-align: center;
   opacity: 0;
   pointer-events: none;
@@ -1318,3 +1322,16 @@ input, textarea { font-family: inherit; }
 /* 删除规划事项 —— 两个看板的悬浮操作里都常驻 */
 .plan-actions button.del:hover,
 .plan-card-actions button.del:hover{ color:var(--danger); background:var(--danger-soft) }
+
+/* 两个看板的悬浮操作固定贴在列的右边缘，居中的提示会被列的 overflow 裁掉一半。
+   这里改成右对齐，让提示往列内侧展开。 */
+.plan-actions [data-tooltip]::before,
+.plan-card-actions [data-tooltip]::before{
+  left: auto; right: 0;
+  transform: translateX(0) translateY(-4px);
+  text-align: right;
+}
+.plan-actions [data-tooltip]:hover::before,
+.plan-card-actions [data-tooltip]:hover::before{
+  transform: translateX(0) translateY(-6px);
+}
