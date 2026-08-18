@@ -6,6 +6,8 @@ import { usePlanStore } from '../../../store/planStore';
 import { useTodoStore } from '../../../store/todoStore';
 import { useUIStore } from '../../../store/uiStore';
 import { TAG_TONES } from '../../../types';
+import { filterVisiblePlans } from '../../../utils/planUtils';
+import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
 import { clsx } from 'clsx';
 import { format, addMonths, subMonths } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -181,8 +183,14 @@ interface CategorySectionProps {
 
 function CategorySection({ categoryId, projectTone }: CategorySectionProps) {
   const { categories, plans, toggleCategoryOpen, addPlan, updateCategory } = usePlanStore();
+  const { todos } = useTodoStore();
+  const showCompletedPlans = useUIStore(state => state.showCompletedPlans);
   const category = categories.find(c => c.id === categoryId);
-  const categoryPlans = plans.filter(p => p.categoryId === categoryId);
+  const categoryPlans = filterVisiblePlans(
+    plans.filter(p => p.categoryId === categoryId),
+    todos,
+    showCompletedPlans
+  );
   const [isAdding, setIsAdding] = useState(false);
   const [newPlanTitle, setNewPlanTitle] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -540,6 +548,7 @@ export function MonthPlanView() {
           <span className="ms"><b>{totalPlans}</b>计划</span>
           <span className="ms"><b style={{ color: 'var(--warn)' }}>{syncedTodos}</b>已转待办</span>
           <span className="ms"><b style={{ color: 'var(--brand)' }}>{doneTodos}</b>已完成</span>
+          <ShowCompletedToggle />
           <button className="this-month" onClick={() => openNewTagModal()}>
             <Plus size={12} />
             新建标签

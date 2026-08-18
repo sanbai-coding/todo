@@ -8,6 +8,8 @@ import { useUIStore } from '../../../store/uiStore';
 import { TAG_TONES } from '../../../types';
 import type { Plan, Project } from '../../../types';
 import { useActiveBoardProject } from './useActiveBoardProject';
+import { filterVisiblePlans } from '../../../utils/planUtils';
+import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
 
 /* ===== 单个规划事项卡片（视觉沿用状态看板的 .card） ===== */
 
@@ -174,15 +176,19 @@ interface PlanColumnProps {
 
 function PlanColumn({ categoryId, projectTone }: PlanColumnProps) {
   const { categories, plans, addPlan } = usePlanStore();
+  const { todos } = useTodoStore();
+  const showCompletedPlans = useUIStore(state => state.showCompletedPlans);
   const category = categories.find(c => c.id === categoryId);
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
 
   if (!category) return null;
 
-  const columnPlans = plans
-    .filter(p => p.categoryId === categoryId)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const columnPlans = filterVisiblePlans(
+    plans.filter(p => p.categoryId === categoryId).sort((a, b) => a.sortOrder - b.sortOrder),
+    todos,
+    showCompletedPlans
+  );
 
   const handleAdd = () => {
     if (!newTitle.trim()) return;
@@ -324,6 +330,7 @@ function ProjectBoard({ project }: ProjectBoardProps) {
           <span><b style={{ color: 'var(--warn)' }}>{linkedPlans.length}</b> 已转待办</span>
           <span><b style={{ color: 'var(--brand)' }}>{donePlans.length}</b> 已完成</span>
         </span>
+        <ShowCompletedToggle />
         <button className="this-month pb-new" onClick={openNewBoardModal}>
           <Plus size={12} />
           新建项目面板

@@ -1301,3 +1301,16 @@ input, textarea { font-family: inherit; }
 .pb-placeholder svg{width:22px; height:22px; stroke-width:1.6; margin-bottom:4px}
 .pb-placeholder .t{font-size:13.5px; font-weight:600; color:var(--ink-2)}
 .pb-placeholder .d{font-size:12px}
+
+/* ===== 「展示已完成」开关（月度规划 / 项目规划共用） ===== */
+.show-done-toggle{gap:6px}
+.show-done-toggle .box{
+  width:14px; height:14px; border-radius:3px;
+  display:grid; place-items:center;
+  border:1px solid var(--ink-4); color:transparent;
+  transition:background .12s, border-color .12s, color .12s;
+}
+.show-done-toggle .box.on{
+  background:var(--brand); border-color:var(--brand); color:var(--brand-ink);
+}
+.show-done-toggle.on{color:var(--ink-1); border-color:var(--line-strong)}

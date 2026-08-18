@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ViewType, TodoStatus, Quadrant } from '../types';
 import { getMonthStr } from '../utils/dateUtils';
 import { useAuthStore } from './authStore';
@@ -28,6 +29,8 @@ interface UIState {
   tagFilter: string | null;
   dateFilter: 'all' | 'today';
   collapsedOverdue: boolean;
+  /** 月度规划 / 项目规划里是否展示已完成（划线）的规划事项 */
+  showCompletedPlans: boolean;
   
   listModalFilter: ListModalFilter;
 
@@ -57,13 +60,16 @@ interface UIState {
   setTagFilter: (tag: string | null) => void;
   setDateFilter: (filter: 'all' | 'today') => void;
   toggleOverdue: () => void;
+  toggleShowCompletedPlans: () => void;
   
   toastMessage: string | null;
   showToast: (message: string) => void;
   hideToast: () => void;
 }
 
-export const useUIStore = create<UIState>()((set) => ({
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
   currentView: 'timeline',
   isDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
   isModalOpen: false,
@@ -85,6 +91,7 @@ export const useUIStore = create<UIState>()((set) => ({
   tagFilter: null,
   dateFilter: 'all',
   collapsedOverdue: false,
+  showCompletedPlans: true,
   listModalFilter: null,
   toastMessage: null,
 
@@ -160,6 +167,7 @@ export const useUIStore = create<UIState>()((set) => ({
   setTagFilter: (tag) => set({ tagFilter: tag }),
   setDateFilter: (filter) => set({ dateFilter: filter }),
   toggleOverdue: () => set((state) => ({ collapsedOverdue: !state.collapsedOverdue })),
+  toggleShowCompletedPlans: () => set((state) => ({ showCompletedPlans: !state.showCompletedPlans })),
   showToast: (message) => {
     set({ toastMessage: message });
     setTimeout(() => {
@@ -167,4 +175,11 @@ export const useUIStore = create<UIState>()((set) => ({
     }, 3000);
   },
   hideToast: () => set({ toastMessage: null }),
-}));
+    }),
+    {
+      name: 'zhouzhou-ui-storage',
+      // 只记住这个开关，弹窗/当前视图这些临时状态不该跨刷新保留
+      partialize: (state) => ({ showCompletedPlans: state.showCompletedPlans }),
+    }
+  )
+);
