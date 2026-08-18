@@ -11,6 +11,7 @@ import { useActiveBoardProject } from './useActiveBoardProject';
 import { filterVisiblePlans } from '../../../utils/planUtils';
 import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
 import { ConfirmDialog } from '../../common/ConfirmDialog';
+import { AutoGrowTextarea } from '../../common/AutoGrowTextarea';
 
 /* ===== 单个规划事项卡片（视觉沿用状态看板的 .card） ===== */
 
@@ -111,19 +112,14 @@ function PlanCard({ plan, projectTone }: PlanCardProps) {
         )}
 
         {isEditing ? (
-          <input
-            autoFocus
-            className="flex-1 bg-transparent outline-none text-[13.5px] min-w-0"
+          <AutoGrowTextarea
+            className="flex-1 min-w-0"
             value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onBlur={submitEdit}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submitEdit();
-              if (e.key === 'Escape') {
-                setEditTitle(plan.title);
-                setIsEditing(false);
-              }
+            onChange={setEditTitle}
+            onSubmit={submitEdit}
+            onCancel={() => {
+              setEditTitle(plan.title);
+              setIsEditing(false);
             }}
           />
         ) : (

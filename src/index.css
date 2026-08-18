@@ -1335,3 +1335,21 @@ input, textarea { font-family: inherit; }
 .plan-card-actions [data-tooltip]:hover::before{
   transform: translateX(0) translateY(-6px);
 }
+
+/* 就地编辑标题的输入框：自动换行 + 高度自适应，不藏内容 */
+.inline-edit{
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  width: 100%;
+  color: inherit;
+  /* 逐项继承，别用 font 简写 —— 简写会连 line-height 一起重置 */
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  padding: 0;
+  display: block;
+}

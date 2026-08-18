@@ -9,6 +9,7 @@ import { TAG_TONES } from '../../../types';
 import { filterVisiblePlans } from '../../../utils/planUtils';
 import { ShowCompletedToggle } from '../../common/ShowCompletedToggle';
 import { ConfirmDialog } from '../../common/ConfirmDialog';
+import { AutoGrowTextarea } from '../../common/AutoGrowTextarea';
 import { clsx } from 'clsx';
 import { format, addMonths, subMonths } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -123,22 +124,14 @@ function PlanItem({ plan, projectTone }: PlanItemProps) {
       )}
       
       {isEditing ? (
-        <input
-          autoFocus
-          className="flex-1 bg-transparent outline-none text-[13px] px-1"
+        <AutoGrowTextarea
+          className="flex-1 min-w-0 px-1"
           value={editTitle}
-          onChange={(e) => setEditTitle(e.target.value)}
-          onBlur={submitEdit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submitEdit();
-            if (e.key === 'Escape') {
-              setEditTitle(plan.title);
-              setIsEditing(false);
-            }
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onChange={setEditTitle}
+          onSubmit={submitEdit}
+          onCancel={() => {
+            setEditTitle(plan.title);
+            setIsEditing(false);
           }}
         />
       ) : (
